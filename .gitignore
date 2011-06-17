@@ -1,0 +1,7 @@
+.idea/
+out/
+.DS_Store
+*.iml
+lib_managed/
+target/
+project/boot/
