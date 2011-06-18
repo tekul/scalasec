@@ -14,8 +14,7 @@ import org.springframework.security.web.access.expression.ExpressionBasedFilterI
  */
 class FilterChainSpec extends FlatSpec with ShouldMatchers {
 
-  "A FilterChain" should
-      "support adding of intercept URLs to security interceptor" in {
+  "A FilterChain" should "support adding of intercept URLs to security interceptor" in {
     val chain = new FilterChain {
       val entryPoint = new LoginUrlAuthenticationEntryPoint
       override val filterSecurityInterceptor = new FilterSecurityInterceptor
@@ -29,59 +28,56 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers {
 
     val mds = chain.filterSecurityInterceptor.getSecurityMetadataSource match {
       case d : DefaultFilterInvocationSecurityMetadataSource => d
-      case _ => fail("Expected DefaultFilterInvocationSecurityMetadataSource")
+      case a : Any => fail("Expected DefaultFilterInvocationSecurityMetadataSource but was" + a)
     }
 
     mds.getAllConfigAttributes.size() should be (2)
   }
 
-  "A FilterChain with FormLogin" should
-      "have a LoginUrlAuthenticationEntryPoint" in {
+  "A FilterChain with FormLogin" should "have a LoginUrlAuthenticationEntryPoint" in {
     val chain = new FilterChain with FormLogin
 
     chain.entryPoint should be (chain.formLoginEntryPoint)
   }
 
-  it should "have 5 filters" in {
+  it should "have 8 filters" in {
     val chain = new FilterChain with FormLogin
 
-    chain.filters.length should be (5)
+    chain.filters.length should be (8)
   }
 
-  "A FilterChain with BasicAuthentication with FormLogin " should
-      "have a LoginUrlAuthenticationEntryPoint" in {
+  "A FilterChain with BasicAuthentication with FormLogin " should "have a LoginUrlAuthenticationEntryPoint" in {
     val chain = new FilterChain with BasicAuthentication with FormLogin
 
     chain.entryPoint should be theSameInstanceAs (chain.formLoginEntryPoint)
   }
 
-  "A FilterChain with FormLogin with BasicAuthentication" should
-      "have a BasicAuthenticationEntryPoint" in {
+  "A FilterChain with FormLogin with BasicAuthentication" should "have a BasicAuthenticationEntryPoint" in {
     val chain = new FilterChain with FormLogin with BasicAuthentication
 
     chain.entryPoint should be theSameInstanceAs (chain.basicAuthenticationEntryPoint)
   }
-  it should "have 6 filters" in {
+  it should "have 9 filters" in {
     val chain = new FilterChain with FormLogin with BasicAuthentication
 
-    chain.filters.length should be (6)
+    chain.filters.length should be (9)
   }
 
-  "A FilterChain with ELConfiguration" should
-    "have an Expression SecurityMDS" in {
+  "A FilterChain with ELConfiguration" should "have an Expression SecurityMDS" in {
     val chain = new FilterChain with FormLogin with ELConfiguration
 
     chain.addInterceptUrl(matcher = "/AAA", access = "permitAll")
     chain.addInterceptUrl("/**", "hasAnyRole('a','b','c')")
 
+    chain.filters
+
     val mds = chain.filterSecurityInterceptor.getSecurityMetadataSource match {
       case d : ExpressionBasedFilterInvocationSecurityMetadataSource => d
-      case _ => fail("Expected ExpressionBasedFilterInvocationSecurityMetadataSource ")
+      case a : Any => fail("Expected ExpressionBasedFilterInvocationSecurityMetadataSource but was: " + a)
     }
 
     mds.getAllConfigAttributes.size() should be (2)
   }
-
 
 
 }
