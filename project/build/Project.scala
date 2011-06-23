@@ -1,6 +1,6 @@
 import sbt._
 
-class MyProject(info: ProjectInfo) extends DefaultProject(info) {
+class MyProject(info: ProjectInfo) extends DefaultWebProject(info) {
     val secVersion = "3.1.0.CI-SNAPSHOT"
 
     val seccore    = "org.springframework.security" % "spring-security-core" % secVersion % "compile->default" withSources()
@@ -9,6 +9,10 @@ class MyProject(info: ProjectInfo) extends DefaultProject(info) {
     val servletapi = "javax.servlet" % "servlet-api" % "2.5" % "compile->default" withSources()
     val scalatest = "org.scalatest" % "scalatest_2.9.0" % "1.6.1"
     //val specs      = "org.scala-tools.testing" %% "specs" % "1.6.6" % "test->default"
+    val jetty6    = "org.mortbay.jetty" % "jetty" % "6.1.26" % "test->default"
+
+    val cglib     = "cglib" % "cglib-nodep" % "2.2.2" % "test->default"
+
 
     val mavenLocal = "Local Maven Repository" at "file://"+Path.userHome+"/.m2/repository"
 }
