@@ -2,23 +2,26 @@ package sec
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint
 
 import Conversions._
-import org.springframework.security.web.access.intercept.{FilterSecurityInterceptor, DefaultFilterInvocationSecurityMetadataSource}
+import org.springframework.security.web.access.intercept.DefaultFilterInvocationSecurityMetadataSource
 import org.springframework.security.web.access.expression.ExpressionBasedFilterInvocationSecurityMetadataSource
 
+trait AllowAllAuthentication extends StatelessFilterChain {
+  override val authenticationManager = new AllowAllAuthenticationManager("ROLE_USER")
+}
 /**
  *
  * @author Luke Taylor
  */
 class FilterChainSpec extends FlatSpec with ShouldMatchers {
+  val filterChainWithForm = new FilterChain with FormLogin with AllowAllAuthentication
+  val filterChainWithBasic = new FilterChain with BasicAuthentication with AllowAllAuthentication
+  val filterChainWithBasicForm = new FilterChain with BasicAuthentication with FormLogin with AllowAllAuthentication
+  val filterChainWithFormBasic = new FilterChain with FormLogin with BasicAuthentication with AllowAllAuthentication
 
   "A FilterChain" should "support adding of intercept URLs to security interceptor" in {
-    val chain = new FilterChain {
-      val entryPoint = new LoginUrlAuthenticationEntryPoint
-      override val filterSecurityInterceptor = new FilterSecurityInterceptor
-    }
+    val chain = new FilterChain with AllowAllAuthentication
 
     chain.addInterceptUrl(matcher = "/AAA", access = "AAA")
     chain.addInterceptUrl("/**", "BBB")
@@ -35,36 +38,26 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers {
   }
 
   "A FilterChain with FormLogin" should "have a LoginUrlAuthenticationEntryPoint" in {
-    val chain = new FilterChain with FormLogin
-
-    chain.entryPoint should be (chain.formLoginEntryPoint)
+    filterChainWithForm.entryPoint should be theSameInstanceAs (filterChainWithForm.formLoginEntryPoint)
   }
 
-  it should "have 8 filters" in {
-    val chain = new FilterChain with FormLogin
-
-    chain.filters.length should be (8)
+  it should "have 7 filters" in {
+    filterChainWithForm.filters.length should be (7)
   }
 
   "A FilterChain with BasicAuthentication with FormLogin " should "have a LoginUrlAuthenticationEntryPoint" in {
-    val chain = new FilterChain with BasicAuthentication with FormLogin
-
-    chain.entryPoint should be theSameInstanceAs (chain.formLoginEntryPoint)
+    filterChainWithBasicForm.entryPoint should be theSameInstanceAs (filterChainWithBasicForm.formLoginEntryPoint)
   }
 
   "A FilterChain with FormLogin with BasicAuthentication" should "have a BasicAuthenticationEntryPoint" in {
-    val chain = new FilterChain with FormLogin with BasicAuthentication
-
-    chain.entryPoint should be theSameInstanceAs (chain.basicAuthenticationEntryPoint)
+    filterChainWithFormBasic.entryPoint should be theSameInstanceAs (filterChainWithFormBasic.basicAuthenticationEntryPoint)
   }
-  it should "have 9 filters" in {
-    val chain = new FilterChain with FormLogin with BasicAuthentication
-
-    chain.filters.length should be (9)
+  it should "have 8 filters" in {
+    filterChainWithFormBasic.filters.length should be (8)
   }
 
   "A FilterChain with ELConfiguration" should "have an Expression SecurityMDS" in {
-    val chain = new FilterChain with FormLogin with ELConfiguration
+    val chain = new FilterChain with FormLogin with ELConfiguration with AllowAllAuthentication
 
     chain.addInterceptUrl(matcher = "/AAA", access = "permitAll")
     chain.addInterceptUrl("/**", "hasAnyRole('a','b','c')")
