@@ -14,12 +14,12 @@ class ScalaSecurityConfiguration {
 
   @Bean
   def filterChainProxy = {
-    new FilterChainProxy(basicFilterChain)
+    new FilterChainProxy(formLoginChain)
   }
 
   @Bean
   def formLoginChain: SecurityFilterChain = {
-    val filterChain = new FilterChain with FormLogin {
+    val filterChain = new FilterChain with FormLogin with LoginPageGenerator {
       override def authenticationManager = testAuthenticationManager
     }
 
@@ -31,9 +31,8 @@ class ScalaSecurityConfiguration {
   def basicFilterChain: SecurityFilterChain = {
     val filterChain = new FilterChain with BasicAuthentication with AnonymousAuthentication {
       override def authenticationManager = testAuthenticationManager
+      addInterceptUrl("/**", "ROLE_USER")
     }
-
-    filterChain.addInterceptUrl("/**", "ROLE_USER")
     filterChain
   }
 
