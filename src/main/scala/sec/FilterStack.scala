@@ -11,23 +11,23 @@ import java.lang.UnsupportedOperationException
 private[sec] abstract class FilterStack {
   private final val NO_FILTER = null
 
-  def channelFilter : Filter = NO_FILTER
-  def securityContextPersistenceFilter: Filter = NO_FILTER
-  def logoutFilter: Filter = NO_FILTER
-  def x509Filter: Filter = NO_FILTER
-  def formLoginFilter: Filter  = NO_FILTER
-  def openIDFilter: Filter = NO_FILTER
-  def loginPageFilter: Filter = NO_FILTER
-  def basicAuthenticationFilter: Filter = NO_FILTER
-  def requestCacheFilter: Filter = NO_FILTER
-  def servletApiFilter: Filter = NO_FILTER
-  def rememberMeFilter: Filter = NO_FILTER
-  def anonymousFilter: Filter = NO_FILTER
-  def sessionManagementFilter: Filter = NO_FILTER
-  def exceptionTranslationFilter: Filter = NO_FILTER
-  def filterSecurityInterceptor: Filter = NO_FILTER
+  lazy val channelFilter : Filter = NO_FILTER
+  val securityContextPersistenceFilter: Filter
+  lazy val logoutFilter: Filter = NO_FILTER
+  lazy val x509Filter: Filter = NO_FILTER
+  lazy val formLoginFilter: Filter  = NO_FILTER
+  lazy val openIDFilter: Filter = NO_FILTER
+  lazy val loginPageFilter: Filter = NO_FILTER
+  lazy val basicAuthenticationFilter: Filter = NO_FILTER
+  lazy val requestCacheFilter: Filter = NO_FILTER
+  lazy val servletApiFilter: Filter = NO_FILTER
+  lazy val rememberMeFilter: Filter = NO_FILTER
+  lazy val anonymousFilter: Filter = NO_FILTER
+  lazy val sessionManagementFilter: Filter = NO_FILTER
+  val exceptionTranslationFilter: Filter
+  val filterSecurityInterceptor: Filter
 
-  def filters : List[Filter] = {
+  lazy val filters : List[Filter] = {
     val list : List[Filter] = List(securityContextPersistenceFilter,
       logoutFilter,
       x509Filter,

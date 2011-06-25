@@ -3,7 +3,6 @@ package sec
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.www.{BasicAuthenticationEntryPoint, BasicAuthenticationFilter}
 import org.springframework.security.web.util.RequestMatcher
-import org.springframework.security.web.savedrequest.RequestCacheAwareFilter
 import org.springframework.security.web.access.expression.{DefaultWebSecurityExpressionHandler, ExpressionBasedFilterInvocationSecurityMetadataSource}
 import org.springframework.security.web.access.intercept.{DefaultFilterInvocationSecurityMetadataSource, FilterInvocationSecurityMetadataSource, FilterSecurityInterceptor}
 import org.springframework.security.web.authentication.logout._
@@ -21,19 +20,28 @@ import org.springframework.security.access.vote.{AffirmativeBased, Authenticated
 import org.springframework.security.web.access.ExceptionTranslationFilter
 import org.springframework.security.authentication.{AuthenticationManager, ProviderManager, AnonymousAuthenticationProvider, AuthenticationProvider}
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
-import org.springframework.security.openid.OpenIDAuthenticationFilter
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter
 import org.springframework.security.web.authentication._
+import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
+import org.springframework.security.core.userdetails.UserDetailsService
+import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
 
 object RequiredChannel extends Enumeration {
   val Http, Https, Any = Value
 }
 
-abstract class FilterChain extends StatelessFilterChain {
+abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentication {
   override val securityContextRepository = new HttpSessionSecurityContextRepository
-  override val requestCacheFilter = new RequestCacheAwareFilter()
 
-  override def sessionManagementFilter : Filter = {
+  override val requestCache = new HttpSessionRequestCache
+
+  override lazy val requestCacheFilter = {
+    val filter = new RequestCacheAwareFilter()
+    filter.setRequestCache(requestCache)
+    filter
+  }
+
+  override lazy val sessionManagementFilter : Filter = {
     new SessionManagementFilter(securityContextRepository)
   }
 }
@@ -44,39 +52,51 @@ abstract class FilterChain extends StatelessFilterChain {
  * @author Luke Taylor
  */
 abstract class StatelessFilterChain extends FilterStack with Conversions {
-
   // Controls which requests will be handled by this filter chain
   val requestMatcher : RequestMatcher = "/**"
 
-  override def securityContextPersistenceFilter = {
-    val scpi = new SecurityContextPersistenceFilter
-    scpi.setSecurityContextRepository(securityContextRepository)
-    scpi
+  override lazy val securityContextPersistenceFilter = {
+    val scpf = new SecurityContextPersistenceFilter
+    scpf.setSecurityContextRepository(securityContextRepository)
+    scpf
   }
 
   val securityContextRepository : SecurityContextRepository = new NullSecurityContextRepository
 
-  override val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
+  override lazy val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
+
+  val requestCache: RequestCache = new NullRequestCache
 
   override lazy val exceptionTranslationFilter = {
     val etf = new ExceptionTranslationFilter
     etf.setAuthenticationEntryPoint(entryPoint)
+    etf.setRequestCache(requestCache)
     etf
   }
 
   def entryPoint : AuthenticationEntryPoint = new Http403ForbiddenEntryPoint
 
-  override def filterSecurityInterceptor = {
+  override lazy val filterSecurityInterceptor = {
     val fsi = new FilterSecurityInterceptor()
     fsi.setSecurityMetadataSource(securityMetadataSource)
     fsi.setAccessDecisionManager(accessDecisionManager)
     fsi
   }
 
+  private var channels : ListMap[RequestMatcher, RequiredChannel.Value] = ListMap()
   private[sec] var accessUrls : ListMap[RequestMatcher, ju.List[ConfigAttribute]] = ListMap()
   private[sec] def securityMetadataSource : FilterInvocationSecurityMetadataSource
           = new DefaultFilterInvocationSecurityMetadataSource(accessUrls)
 
+  def interceptUrl(matcher : RequestMatcher, access : String, channel : RequiredChannel.Value = RequiredChannel.Any) {
+    assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
+    accessUrls = accessUrls + (matcher -> createConfigAttributes(access))
+    channels = channels + (matcher -> channel)
+  }
+
+  private[sec] def createConfigAttributes(access : String) : ju.List[ConfigAttribute] = {
+    SecurityConfig.createList(access.split(",") : _*);
+  }
 
   def accessDecisionVoters : List[AccessDecisionVoter[_]] = List(new RoleVoter(), new AuthenticatedVoter())
 
@@ -95,27 +115,16 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
     am
   }
 
-  private var channels : ListMap[RequestMatcher, RequiredChannel.Value] = ListMap()
-
   lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
 
   def authenticationManager : AuthenticationManager
-
-  def addInterceptUrl(matcher : RequestMatcher, access : String, channel : RequiredChannel.Value = RequiredChannel.Any) {
-    accessUrls = accessUrls + (matcher -> createConfigAttributes(access))
-    channels = channels + (matcher -> channel)
-  }
-
-  private[sec] def createConfigAttributes(access : String) : ju.List[ConfigAttribute] = {
-    SecurityConfig.createList(access.split(",") : _*);
-  }
 }
 
 trait AnonymousAuthentication extends StatelessFilterChain {
-  val key = "replaceMeWithAProperKey"
-  def provider = {
+  lazy val anonymousKey = "replaceMeWithAProperKey"
+  def anonymousProvider = {
     val p = new AnonymousAuthenticationProvider
-    p.setKey(key)
+    p.setKey(anonymousKey)
     p
   }
   val user = {
@@ -126,12 +135,12 @@ trait AnonymousAuthentication extends StatelessFilterChain {
   }
 
   override def authenticationProviders = {
-    provider :: super.authenticationProviders
+    anonymousProvider :: super.authenticationProviders
   }
 
-  override def anonymousFilter = {
+  override lazy val anonymousFilter = {
     val filter = new AnonymousAuthenticationFilter
-    filter.setKey(key)
+    filter.setKey(anonymousKey)
     filter.setUserAttribute(user)
 
     filter
@@ -139,9 +148,15 @@ trait AnonymousAuthentication extends StatelessFilterChain {
 }
 
 trait Logout extends StatelessFilterChain {
-  val logoutHandlers = List[LogoutHandler](new SecurityContextLogoutHandler())
+  lazy val logoutHandlers: List[LogoutHandler] = {
+    val sclh = new SecurityContextLogoutHandler()
+    rememberMeServices match {
+      case l: LogoutHandler =>  sclh :: l :: Nil
+      case _ => sclh :: Nil
+    }
+  }
   val logoutSuccessHandler : LogoutSuccessHandler = new SimpleUrlLogoutSuccessHandler()
-  override val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
+  override lazy val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
 }
 
 trait ELAccessControl extends StatelessFilterChain {
@@ -183,14 +198,24 @@ trait FormLogin extends StatelessFilterChain with LoginPage {
   }
 }
 
-trait OpenID extends StatelessFilterChain with LoginPage {
-  override val openIDFilter = new OpenIDAuthenticationFilter
+trait OpenID extends StatelessFilterChain with LoginPage with UserService {
+  override lazy val openIDFilter = new OpenIDAuthenticationFilter
+  lazy val openIDProvider = {
+    val provider = new OpenIDAuthenticationProvider
+
+    provider.setUserDetailsService(userDetailsService)
+    provider
+  }
+
+  override def authenticationProviders = {
+    openIDProvider :: super.authenticationProviders
+  }
 }
 
 trait BasicAuthentication extends StatelessFilterChain {
   val basicAuthenticationEntryPoint = new BasicAuthenticationEntryPoint()
 
-  override def basicAuthenticationFilter = {
+  override lazy val basicAuthenticationFilter = {
     val baf = new BasicAuthenticationFilter()
     baf.setAuthenticationManager(authenticationManager)
     baf.setAuthenticationEntryPoint(basicAuthenticationEntryPoint)
@@ -199,3 +224,11 @@ trait BasicAuthentication extends StatelessFilterChain {
 
   override def entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
 }
+
+/**
+ * Provides a UserDetailsService reference to services which require it
+ */
+trait UserService {
+  val userDetailsService: UserDetailsService
+}
+
