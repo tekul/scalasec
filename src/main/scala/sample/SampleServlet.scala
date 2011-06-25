@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServletResponse
 import org.springframework.security.core.context.SecurityContextHolder
 
 /**
- * TODO: Better toString() on SecurityContextHolderAwareFilter
  * @author Luke Taylor
  */
 class SampleServlet extends HttpServlet {
@@ -15,7 +14,11 @@ class SampleServlet extends HttpServlet {
       <html>
         <head><title>Security Sample</title></head>
         <body>
-          <p>{"Hello, your request was: " + req}</p>
+          <p>Hello, your request was:
+<pre>
+{req}
+</pre>
+          </p>
           <p>{"Current security context contents: " + SecurityContextHolder.getContext.getAuthentication}</p>
         </body>
       </html>.toString()
