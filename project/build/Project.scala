@@ -12,6 +12,9 @@ class MyProject(info: ProjectInfo) extends DefaultWebProject(info) {
     //val specs      = "org.scala-tools.testing" %% "specs" % "1.6.6" % "test->default"
     val jetty6    = "org.mortbay.jetty" % "jetty" % "6.1.26" % "test->default"
 
+    val logback   = "ch.qos.logback" % "logback-classic" % "0.9.28" % "compile->default"
+    val jcl       = "org.slf4j" %  "jcl-over-slf4j" % "1.6.1" % "runtime->default"
+
     val cglib     = "cglib" % "cglib-nodep" % "2.2.2" % "test->default"
 
 
