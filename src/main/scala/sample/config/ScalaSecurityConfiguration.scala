@@ -9,6 +9,10 @@ import org.springframework.security.core.userdetails.{User, UserDetailsService}
 import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import java.util.Arrays
+import javax.servlet.http.HttpServletRequest
+import org.springframework.security.core.Authentication
+
+import scala.collection.JavaConversions._
 
 /**
  * @author Luke Taylor
@@ -18,7 +22,7 @@ class ScalaSecurityConfiguration {
 
   @Bean
   def filterChainProxy = {
-    new FilterChainProxy(simpleFormLoginChain)
+    new FilterChainProxy(formLoginWithScalaAccessRules)
   }
 
   @Bean
@@ -50,6 +54,29 @@ class ScalaSecurityConfiguration {
     am.setProviders(Arrays.asList(provider))
     am.setEraseCredentialsAfterAuthentication(false)
     am
+  }
+
+  @Bean
+  def formLoginWithScalaAccessRules = {
+    val filterChain = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
+      override def authenticationManager = testAuthenticationManager
+      override val userDetailsService = testUserDetailsService
+      interceptUrlScala("/", allowAnyone)
+      interceptUrlScala("/scala*", allowAnyone)
+      interceptUrlScala("/**", allowAnyUser)
+      override val accessDecisionVoters = new ScalaWebVoter :: Nil
+    }
+
+    filterChain
+  }
+
+  // Access rules
+  def allowAnyone(a: Authentication, r: HttpServletRequest) = {
+    true
+  }
+
+  def allowAnyUser(a: Authentication, r: HttpServletRequest) = {
+    a.getAuthorities.exists("ROLE_USER" == _.getAuthority)
   }
 
   @Bean

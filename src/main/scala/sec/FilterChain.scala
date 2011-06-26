@@ -3,7 +3,6 @@ package sec
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.www.{BasicAuthenticationEntryPoint, BasicAuthenticationFilter}
 import org.springframework.security.web.util.RequestMatcher
-import org.springframework.security.web.access.expression.{DefaultWebSecurityExpressionHandler, ExpressionBasedFilterInvocationSecurityMetadataSource}
 import org.springframework.security.web.access.intercept.{DefaultFilterInvocationSecurityMetadataSource, FilterInvocationSecurityMetadataSource, FilterSecurityInterceptor}
 import org.springframework.security.web.authentication.logout._
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter
@@ -25,6 +24,9 @@ import org.springframework.security.web.authentication._
 import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
+import javax.servlet.http.HttpServletRequest
+import org.springframework.security.core.Authentication
+import org.springframework.security.web.access.expression.{WebExpressionVoter, DefaultWebSecurityExpressionHandler, ExpressionBasedFilterInvocationSecurityMetadataSource}
 
 object RequiredChannel extends Enumeration {
   val Http, Https, Any = Value
@@ -88,14 +90,18 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
   private[sec] def securityMetadataSource : FilterInvocationSecurityMetadataSource
           = new DefaultFilterInvocationSecurityMetadataSource(accessUrls)
 
-  def interceptUrl(matcher : RequestMatcher, access : String, channel : RequiredChannel.Value = RequiredChannel.Any) {
-    assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
-    accessUrls = accessUrls + (matcher -> createConfigAttributes(access))
-    channels = channels + (matcher -> channel)
+  def interceptUrl(matcher: RequestMatcher, access: String, channel: RequiredChannel.Value = RequiredChannel.Any) {
+    addInterceptUrl(matcher, SecurityConfig.createList(access.split(",") : _*), channel)
   }
 
-  private[sec] def createConfigAttributes(access : String) : ju.List[ConfigAttribute] = {
-    SecurityConfig.createList(access.split(",") : _*);
+  def interceptUrlScala(matcher: RequestMatcher, access: (Authentication, HttpServletRequest) => Boolean, channel: RequiredChannel.Value = RequiredChannel.Any) {
+    addInterceptUrl(matcher, Arrays.asList(new ScalaWebConfigAttribute(access)), channel)
+  }
+
+  private[sec] def addInterceptUrl(matcher: RequestMatcher, attributes: ju.List[ConfigAttribute], channel: RequiredChannel.Value) {
+    assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
+    accessUrls = accessUrls + (matcher -> attributes)
+    channels = channels + (matcher -> channel)
   }
 
   def accessDecisionVoters : List[AccessDecisionVoter[_]] = List(new RoleVoter(), new AuthenticatedVoter())
@@ -164,9 +170,11 @@ trait ELAccessControl extends StatelessFilterChain {
 
   override lazy val securityMetadataSource = new ExpressionBasedFilterInvocationSecurityMetadataSource(accessUrls, expressionHandler)
 
-  override def createConfigAttributes(access : String) : ju.List[ConfigAttribute] = {
-    SecurityConfig.createList(access);
+  override def interceptUrl(matcher: RequestMatcher, access: String, channel: RequiredChannel.Value = RequiredChannel.Any) {
+    addInterceptUrl(matcher, SecurityConfig.createList(access), channel)
   }
+
+  override def accessDecisionVoters = new WebExpressionVoter :: super.accessDecisionVoters
 }
 
 private[sec] trait LoginPage extends StatelessFilterChain {
