@@ -1,11 +1,10 @@
-package sec
+package scalasec
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 
 import Conversions._
 import org.springframework.security.web.access.intercept.DefaultFilterInvocationSecurityMetadataSource
-import org.springframework.security.web.access.expression.ExpressionBasedFilterInvocationSecurityMetadataSource
 import org.springframework.security.access.SecurityConfig
 
 trait AllowAllAuthentication extends StatelessFilterChain {

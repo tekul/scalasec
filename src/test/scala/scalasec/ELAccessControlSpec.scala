@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.web.access.expression.ExpressionBasedFilterInvocationSecurityMetadataSource
 import org.scalatest.FlatSpec

@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.web.util.RequestMatcher
 import org.springframework.security.access.SecurityConfig

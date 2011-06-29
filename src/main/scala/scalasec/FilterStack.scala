@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import javax.servlet._
 
@@ -7,7 +7,7 @@ import javax.servlet._
  *
  * @author Luke Taylor
  */
-private[sec] abstract class FilterStack {
+private[scalasec] abstract class FilterStack {
   private final val NO_FILTER = null
 
   lazy val channelFilter : Filter = NO_FILTER

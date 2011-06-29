@@ -1,7 +1,7 @@
 package sample.config
 
-import sec._
-import sec.Conversions._
+import scalasec._
+import scalasec.Conversions._
 
 import org.springframework.context.annotation.{Bean, Configuration}
 import org.springframework.security.web.{FilterChainProxy, SecurityFilterChain}

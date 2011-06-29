@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.web.FilterInvocation
 import org.springframework.security.access.{ConfigAttribute, AccessDecisionVoter}

@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.www.{BasicAuthenticationEntryPoint, BasicAuthenticationFilter}
@@ -88,8 +88,8 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
   }
 
   private var channels : ListMap[RequestMatcher, RequiredChannel.Value] = ListMap()
-  private[sec] var accessUrls : ListMap[RequestMatcher, ju.List[ConfigAttribute]] = ListMap()
-  private[sec] def securityMetadataSource : FilterInvocationSecurityMetadataSource
+  private[scalasec] var accessUrls : ListMap[RequestMatcher, ju.List[ConfigAttribute]] = ListMap()
+  private[scalasec] def securityMetadataSource : FilterInvocationSecurityMetadataSource
           = new DefaultFilterInvocationSecurityMetadataSource(accessUrls)
 
   def interceptUrl(matcher: RequestMatcher, access: String, channel: RequiredChannel.Value = RequiredChannel.Any) {
@@ -100,7 +100,7 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
     addInterceptUrl(matcher, Arrays.asList(new ScalaWebConfigAttribute(access)), channel)
   }
 
-  private[sec] def addInterceptUrl(matcher: RequestMatcher, attributes: ju.List[ConfigAttribute], channel: RequiredChannel.Value) {
+  private[scalasec] def addInterceptUrl(matcher: RequestMatcher, attributes: ju.List[ConfigAttribute], channel: RequiredChannel.Value) {
     assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
     accessUrls = accessUrls + (matcher -> attributes)
     channels = channels + (matcher -> channel)
@@ -114,9 +114,9 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
     adm
   }
 
-  private[sec] def authenticationProviders : List[AuthenticationProvider] = Nil
+  private[scalasec] def authenticationProviders : List[AuthenticationProvider] = Nil
 
-  private[sec] lazy val internalAuthenticationManager : ProviderManager = {
+  private[scalasec] lazy val internalAuthenticationManager : ProviderManager = {
     val am = new ProviderManager
     am.setParent(authenticationManager)
     am.setProviders(Arrays.asList(authenticationProviders:_*))
@@ -167,7 +167,7 @@ trait Logout extends StatelessFilterChain {
   override lazy val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
 }
 
-private[sec] trait LoginPage extends StatelessFilterChain {
+private[scalasec] trait LoginPage extends StatelessFilterChain {
   val loginPage: String = null
 
   override def entryPoint : AuthenticationEntryPoint = {

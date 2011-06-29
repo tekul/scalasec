@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.authentication.{UsernamePasswordAuthenticationToken, BadCredentialsException, AuthenticationManager}
 import org.springframework.security.core.Authentication

@@ -1,4 +1,4 @@
-package sec
+package scalasec
 
 import org.springframework.security.access.ConfigAttribute
 import javax.servlet.http.HttpServletRequest
