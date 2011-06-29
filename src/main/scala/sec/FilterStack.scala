@@ -1,7 +1,6 @@
 package sec
 
 import javax.servlet._
-import java.lang.UnsupportedOperationException
 
 /**
  * Abstract representation of the complete, ordered Spring Security filter stack without any filters
@@ -27,11 +26,16 @@ private[sec] abstract class FilterStack {
   val exceptionTranslationFilter: Filter
   val filterSecurityInterceptor: Filter
 
+  /**
+   * Assembles the list of filters in the correct order, filtering out any which have not been set by adding in the
+   * appropriate trait.
+   */
   lazy val filters : List[Filter] = {
     val list : List[Filter] = List(securityContextPersistenceFilter,
       logoutFilter,
       x509Filter,
       formLoginFilter,
+      openIDFilter,
       loginPageFilter,
       basicAuthenticationFilter,
       requestCacheFilter,

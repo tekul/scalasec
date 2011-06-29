@@ -21,13 +21,15 @@ import org.springframework.security.authentication.{AuthenticationManager, Provi
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter
 import org.springframework.security.web.authentication._
-import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
 import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
-import org.springframework.security.web.access.expression.{WebExpressionVoter, DefaultWebSecurityExpressionHandler, ExpressionBasedFilterInvocationSecurityMetadataSource}
+import org.springframework.security.openid.{OpenID4JavaConsumer, OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
 
+/**
+ * Enum containing the options for secure channel
+ */
 object RequiredChannel extends Enumeration {
   val Http, Https, Any = Value
 }
@@ -165,18 +167,6 @@ trait Logout extends StatelessFilterChain {
   override lazy val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
 }
 
-trait ELAccessControl extends StatelessFilterChain {
-  val expressionHandler = new DefaultWebSecurityExpressionHandler()
-
-  override lazy val securityMetadataSource = new ExpressionBasedFilterInvocationSecurityMetadataSource(accessUrls, expressionHandler)
-
-  override def interceptUrl(matcher: RequestMatcher, access: String, channel: RequiredChannel.Value = RequiredChannel.Any) {
-    addInterceptUrl(matcher, SecurityConfig.createList(access), channel)
-  }
-
-  override def accessDecisionVoters = new WebExpressionVoter :: super.accessDecisionVoters
-}
-
 private[sec] trait LoginPage extends StatelessFilterChain {
   val loginPage: String = null
 
@@ -207,10 +197,15 @@ trait FormLogin extends StatelessFilterChain with LoginPage {
 }
 
 trait OpenID extends StatelessFilterChain with LoginPage with UserService {
-  override lazy val openIDFilter = new OpenIDAuthenticationFilter
+  override lazy val openIDFilter = {
+    val filter = new OpenIDAuthenticationFilter
+    filter.setConsumer(new OpenID4JavaConsumer)
+    filter.setRememberMeServices(rememberMeServices)
+    filter.setAuthenticationManager(internalAuthenticationManager)
+    filter
+  }
   lazy val openIDProvider = {
     val provider = new OpenIDAuthenticationProvider
-
     provider.setUserDetailsService(userDetailsService)
     provider
   }
