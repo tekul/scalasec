@@ -35,7 +35,7 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def simpleFormLoginChain: SecurityFilterChain = {
-    val filterChain = new FilterChain with OpenID with Logout with RememberMe with LoginPageGenerator {
+    val filterChain = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
       override val authenticationManager = testAuthenticationManager
       override val userDetailsService = testUserDetailsService
       interceptUrl("/", "IS_AUTHENTICATED_ANONYMOUSLY")
