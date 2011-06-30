@@ -11,3 +11,7 @@ Then from the sbt prompt, build and run using
 2. `compile`
 3. `jetty-run`
 
+Browse to http://localhost:8080/anyurl/
+
+Log in in with any username and password=username.
+
