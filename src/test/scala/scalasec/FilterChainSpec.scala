@@ -6,6 +6,8 @@ import org.scalatest.matchers.ShouldMatchers
 import Conversions._
 import org.springframework.security.web.access.intercept.DefaultFilterInvocationSecurityMetadataSource
 import org.springframework.security.access.SecurityConfig
+import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter
+import org.springframework.security.web.access.ExceptionTranslationFilter
 
 trait AllowAllAuthentication extends StatelessFilterChain {
   override val authenticationManager = new AllowAllAuthenticationManager("ROLE_USER")
@@ -48,5 +50,22 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
         interceptUrl("/aaa", "BBB")
       }
     }
+  }
+  it should "allow easy insertion of additional filters" in {
+    val chain = new StatelessFilterChain with AllowAllAuthentication with InsertionHelper {
+      override def filters = {
+        insertAfter(classOf[ExceptionTranslationFilter], new X509AuthenticationFilter, super.filters)
+      }
+    }
+
+    assert(chain.filters(3).isInstanceOf[X509AuthenticationFilter])
+
+    val chain2 = new StatelessFilterChain with AllowAllAuthentication with InsertionHelper {
+      override def filters = {
+        insertBefore(classOf[ExceptionTranslationFilter], new X509AuthenticationFilter, super.filters)
+      }
+    }
+
+    assert(chain2.filters(2).isInstanceOf[X509AuthenticationFilter])
   }
 }

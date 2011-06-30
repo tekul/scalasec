@@ -30,7 +30,7 @@ private[scalasec] abstract class FilterStack {
    * Assembles the list of filters in the correct order, filtering out any which have not been set by adding in the
    * appropriate trait.
    */
-  lazy val filters : List[Filter] = {
+  def filters : List[Filter] = {
     val list : List[Filter] = List(securityContextPersistenceFilter,
       logoutFilter,
       x509Filter,

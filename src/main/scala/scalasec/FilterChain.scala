@@ -26,6 +26,7 @@ import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionR
 import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
 import org.springframework.security.openid.{OpenID4JavaConsumer, OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
+import java.lang.AssertionError
 
 /**
  * Enum containing the options for secure channel
@@ -226,6 +227,27 @@ trait BasicAuthentication extends StatelessFilterChain {
   }
 
   override def entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
+}
+
+trait InsertionHelper {
+  def insertBefore(position: Class[_], filter: Filter, target: List[Filter]) : List[Filter] = {
+    insert(position, filter, target, true)
+  }
+  def insertAfter(position: Class[_], filter: Filter, target: List[Filter]) : List[Filter] = {
+    insert(position, filter, target, false)
+  }
+
+  private def insert(position: Class[_], filter: Filter, target: List[Filter], before: Boolean): List[Filter] = {
+    target match {
+      case f :: rest =>
+        if (f.getClass == position) {
+          if (before) {filter :: f :: rest} else {f :: filter :: rest}
+        } else {
+          f :: insert(position, filter, rest, before)
+        }
+      case _ => throw new AssertionError("Failed to find filter of type " + position + " in list")
+    }
+  }
 }
 
 /**
