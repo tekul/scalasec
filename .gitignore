@@ -5,3 +5,5 @@ out/
 lib_managed/
 target/
 project/boot/
+project/plugins/project/
+project/plugins/src_managed/
