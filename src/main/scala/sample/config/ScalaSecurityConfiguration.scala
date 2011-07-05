@@ -62,11 +62,9 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def testAuthenticationManager = {
-    val am = new ProviderManager()
     val provider = new DaoAuthenticationProvider
     provider.setUserDetailsService(testUserDetailsService)
-    am.setProviders(Arrays.asList(provider))
-    am
+    new ProviderManager(Arrays.asList(provider))
   }
 
   /**

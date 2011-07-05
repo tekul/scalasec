@@ -12,11 +12,9 @@ import javax.servlet.Filter
 
 import java.{util => ju}
 import org.springframework.security.web.session.SessionManagementFilter
-import org.springframework.security.core.userdetails.memory.UserAttribute
 import java.util.Arrays
 import org.springframework.security.access.{AccessDecisionManager, AccessDecisionVoter, SecurityConfig, ConfigAttribute}
 import org.springframework.security.access.vote.{AffirmativeBased, AuthenticatedVoter, RoleVoter}
-import org.springframework.security.web.access.ExceptionTranslationFilter
 import org.springframework.security.authentication.{AuthenticationManager, ProviderManager, AnonymousAuthenticationProvider, AuthenticationProvider}
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter
@@ -27,6 +25,8 @@ import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
 import org.springframework.security.openid.{OpenID4JavaConsumer, OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
 import java.lang.AssertionError
+import org.springframework.security.web.access.{ExceptionTranslationFilter, AccessDeniedHandlerImpl}
+import session.{SessionAuthenticationStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy}
 
 /**
  * Enum containing the options for secure channel
@@ -36,24 +36,22 @@ object RequiredChannel extends Enumeration {
 }
 
 abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentication {
-  override val securityContextRepository = new HttpSessionSecurityContextRepository
+  override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
 
-  override val requestCache = new HttpSessionRequestCache
+  override val requestCache: RequestCache = new HttpSessionRequestCache
+
+  override val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
 
   override lazy val requestCacheFilter = {
-    val filter = new RequestCacheAwareFilter()
-    filter.setRequestCache(requestCache)
-    filter
+    new RequestCacheAwareFilter(requestCache)
   }
 
   override lazy val sessionManagementFilter : Filter = {
-    new SessionManagementFilter(securityContextRepository)
+    new SessionManagementFilter(securityContextRepository, sessionAuthenticationStrategy)
   }
 }
 
 /**
- * Todo. Add constructor injection to filters in spring sec (Anon, Fsi etc).
- *
  * @author Luke Taylor
  */
 abstract class StatelessFilterChain extends FilterStack with Conversions {
@@ -61,22 +59,19 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
   val requestMatcher : RequestMatcher = "/**"
 
   override lazy val securityContextPersistenceFilter = {
-    val scpf = new SecurityContextPersistenceFilter
-    scpf.setSecurityContextRepository(securityContextRepository)
-    scpf
+    new SecurityContextPersistenceFilter(securityContextRepository)
   }
 
-  val securityContextRepository : SecurityContextRepository = new NullSecurityContextRepository
+  val securityContextRepository: SecurityContextRepository = new NullSecurityContextRepository
 
   override lazy val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
 
   val requestCache: RequestCache = new NullRequestCache
+  val rememberMeServices: RememberMeServices = new NullRememberMeServices
+  val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
 
   override lazy val exceptionTranslationFilter = {
-    val etf = new ExceptionTranslationFilter
-    etf.setAuthenticationEntryPoint(entryPoint)
-    etf.setRequestCache(requestCache)
-    etf
+    new ExceptionTranslationFilter(entryPoint, requestCache);
   }
 
   def entryPoint : AuthenticationEntryPoint = new Http403ForbiddenEntryPoint
@@ -110,50 +105,27 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
   def accessDecisionVoters : List[AccessDecisionVoter[_]] = List(new RoleVoter(), new AuthenticatedVoter())
 
   lazy val accessDecisionManager : AccessDecisionManager = {
-    val adm = new AffirmativeBased
-    adm.setDecisionVoters(Arrays.asList(accessDecisionVoters: _*))
-    adm
+    new AffirmativeBased(Arrays.asList(accessDecisionVoters: _*))
   }
 
   private[scalasec] def authenticationProviders : List[AuthenticationProvider] = Nil
 
   private[scalasec] lazy val internalAuthenticationManager : ProviderManager = {
-    val am = new ProviderManager
-    am.setParent(authenticationManager)
-    am.setProviders(Arrays.asList(authenticationProviders:_*))
-    am
+    new ProviderManager(Arrays.asList(authenticationProviders:_*), authenticationManager)
   }
-
-  lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
 
   def authenticationManager : AuthenticationManager
 }
 
 trait AnonymousAuthentication extends StatelessFilterChain {
-  lazy val anonymousKey = "replaceMeWithAProperKey"
-  def anonymousProvider = {
-    val p = new AnonymousAuthenticationProvider
-    p.setKey(anonymousKey)
-    p
-  }
-  val user = {
-    val attribute = new UserAttribute()
-    attribute.setPassword("anonymous")
-    attribute.setAuthorities("ROLE_ANONYMOUS")
-    attribute
-  }
+  val anonymousKey = "replaceMeWithAProperKey"
+  val anonymousProvider = new AnonymousAuthenticationProvider(anonymousKey)
 
   override def authenticationProviders = {
     anonymousProvider :: super.authenticationProviders
   }
 
-  override lazy val anonymousFilter = {
-    val filter = new AnonymousAuthenticationFilter
-    filter.setKey(anonymousKey)
-    filter.setUserAttribute(user)
-
-    filter
-  }
+  override lazy val anonymousFilter = new AnonymousAuthenticationFilter(anonymousKey)
 }
 
 trait Logout extends StatelessFilterChain {
@@ -172,10 +144,8 @@ private[scalasec] trait LoginPage extends StatelessFilterChain {
   val loginPage: String = null
 
   override def entryPoint : AuthenticationEntryPoint = {
-    val ep = new LoginUrlAuthenticationEntryPoint
     assert(loginPage != null, "You need to set the loginPage value or add the LoginPageGenerator trait")
-    ep.setLoginFormUrl(loginPage)
-    ep
+    new LoginUrlAuthenticationEntryPoint(loginPage)
   }
 }
 
@@ -191,7 +161,7 @@ trait LoginPageGenerator extends StatelessFilterChain with LoginPage {
 trait FormLogin extends StatelessFilterChain with LoginPage {
   override lazy val formLoginFilter = {
     val filter = new UsernamePasswordAuthenticationFilter
-    filter.setAuthenticationManager(internalAuthenticationManager)
+    filter.setAuthenticationManager(authenticationManager)
     filter.setRememberMeServices(rememberMeServices)
     filter
   }
@@ -219,12 +189,8 @@ trait OpenID extends StatelessFilterChain with LoginPage with UserService {
 trait BasicAuthentication extends StatelessFilterChain {
   val basicAuthenticationEntryPoint = new BasicAuthenticationEntryPoint()
 
-  override lazy val basicAuthenticationFilter = {
-    val baf = new BasicAuthenticationFilter()
-    baf.setAuthenticationManager(authenticationManager)
-    baf.setAuthenticationEntryPoint(basicAuthenticationEntryPoint)
-    baf
-  }
+  override lazy val basicAuthenticationFilter =
+    new BasicAuthenticationFilter(authenticationManager, basicAuthenticationEntryPoint)
 
   override def entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
 }

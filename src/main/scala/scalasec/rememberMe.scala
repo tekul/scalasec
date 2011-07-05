@@ -10,25 +10,11 @@ import org.springframework.security.authentication.RememberMeAuthenticationProvi
 trait RememberMe extends StatelessFilterChain with UserService {
   val rememberMeKey = "todo"
 
-  override lazy val rememberMeFilter = {
-    val filter = new RememberMeAuthenticationFilter
-    filter.setAuthenticationManager(internalAuthenticationManager)
-    filter.setRememberMeServices(rememberMeServices)
-    filter
-  }
+  override lazy val rememberMeFilter = new RememberMeAuthenticationFilter(internalAuthenticationManager, rememberMeServices)
 
-  lazy val rememberMeProvider = {
-    val provider = new RememberMeAuthenticationProvider
-    provider.setKey(rememberMeKey)
-    provider
-  }
+  val rememberMeProvider = new RememberMeAuthenticationProvider(rememberMeKey)
 
-  override lazy val rememberMeServices: RememberMeServices = {
-    val rm = new TokenBasedRememberMeServices
-    rm.setKey(rememberMeKey)
-    rm.setUserDetailsService(userDetailsService)
-    rm
-  }
+  override val rememberMeServices: RememberMeServices = new TokenBasedRememberMeServices(rememberMeKey, userDetailsService)
 
   override def authenticationProviders = {
     rememberMeProvider :: super.authenticationProviders
@@ -38,9 +24,6 @@ trait RememberMe extends StatelessFilterChain with UserService {
 trait PersistentRememberMe extends RememberMe {
   lazy val tokenRepository : PersistentTokenRepository = new InMemoryTokenRepositoryImpl
 
-  override lazy val rememberMeServices = {
-    val rm = new PersistentTokenBasedRememberMeServices
-    rm.setTokenRepository(tokenRepository)
-    rm
-  }
+  override val rememberMeServices =
+    new PersistentTokenBasedRememberMeServices(rememberMeKey, userDetailsService, tokenRepository)
 }
