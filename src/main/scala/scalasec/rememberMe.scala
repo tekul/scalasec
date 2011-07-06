@@ -14,7 +14,7 @@ trait RememberMe extends StatelessFilterChain with UserService {
 
   val rememberMeProvider = new RememberMeAuthenticationProvider(rememberMeKey)
 
-  override val rememberMeServices: RememberMeServices = new TokenBasedRememberMeServices(rememberMeKey, userDetailsService)
+  override lazy val rememberMeServices: RememberMeServices = new TokenBasedRememberMeServices(rememberMeKey, userDetailsService)
 
   override def authenticationProviders = {
     rememberMeProvider :: super.authenticationProviders
@@ -24,6 +24,6 @@ trait RememberMe extends StatelessFilterChain with UserService {
 trait PersistentRememberMe extends RememberMe {
   lazy val tokenRepository : PersistentTokenRepository = new InMemoryTokenRepositoryImpl
 
-  override val rememberMeServices =
+  override lazy val rememberMeServices =
     new PersistentTokenBasedRememberMeServices(rememberMeKey, userDetailsService, tokenRepository)
 }

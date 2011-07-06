@@ -27,22 +27,20 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def filterChainProxy = {
-    new FilterChainProxy(simpleFormLoginChain)
+    new FilterChainProxy(formLoginWithScalaAccessRules)
   }
 
   /**
    * A form-login configuration with remember-me and other standard options
    */
   @Bean
-  def simpleFormLoginChain: SecurityFilterChain = {
-    val filterChain = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
+  def simpleFormLoginChain: FilterChain = {
+    new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
       override val authenticationManager = testAuthenticationManager
       override val userDetailsService = testUserDetailsService
       interceptUrl("/", "IS_AUTHENTICATED_ANONYMOUSLY")
       interceptUrl("/**", "ROLE_USER")
     }
-
-    filterChain
   }
 
   /**
@@ -50,11 +48,10 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def basicFilterChain: SecurityFilterChain = {
-    val filterChain = new FilterChain with BasicAuthentication {
+    new FilterChain with BasicAuthentication {
       override val authenticationManager = testAuthenticationManager
       interceptUrl("/**", "ROLE_USER")
     }
-    filterChain
   }
 
   /**
@@ -84,7 +81,7 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def formLoginWithScalaAccessRules = {
-    val filterChain = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
+    new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
       override val authenticationManager = testAuthenticationManager
       override val userDetailsService = testUserDetailsService
       interceptUrlScala("/", allowAnyone)
@@ -93,8 +90,6 @@ class ScalaSecurityConfiguration {
       interceptUrlScala("/**", allowAnyUser)
       override val accessDecisionVoters = new ScalaWebVoter :: Nil
     }
-
-    filterChain
   }
 
   // Some Scala access rules

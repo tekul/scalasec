@@ -3,10 +3,9 @@ package scalasec
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Assertions._
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
-import tools.reflect.Mock
 import org.springframework.security.core.userdetails.{User, UserDetailsService}
+import org.springframework.security.web.authentication.{NullRememberMeServices, LoginUrlAuthenticationEntryPoint}
 
 /**
  * @author Luke Taylor
@@ -15,7 +14,7 @@ import org.springframework.security.core.userdetails.{User, UserDetailsService}
 class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
   val filterChainWithForm = new FilterChain with FormLogin with LoginPageGenerator with AllowAllAuthentication
   val filterChainWithFormRememberMe = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator with AllowAllAuthentication {
-    val userDetailsService = new UserDetailsService {
+    override val userDetailsService = new UserDetailsService {
       def loadUserByUsername(username: String) = new User(username, username, "ROLE_USER")
     }
   }
@@ -26,9 +25,11 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
   "A FilterChain with FormLogin" should "have a LoginUrlAuthenticationEntryPoint" in {
     assert(filterChainWithForm.entryPoint.isInstanceOf[LoginUrlAuthenticationEntryPoint])
   }
-
   it should "have 9 filters" in {
     filterChainWithForm.filters.length should be (9)
+  }
+  it should "have a NullRememberMeServices" in {
+    assert(filterChainWithForm.formLoginFilter.getRememberMeServices.isInstanceOf[NullRememberMeServices])
   }
 
   "A FilterChain with BasicAuthentication with FormLogin " should "have a LoginUrlAuthenticationEntryPoint" in {

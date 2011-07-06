@@ -1,8 +1,6 @@
 package scalasec
 
-import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.www.{BasicAuthenticationEntryPoint, BasicAuthenticationFilter}
-import org.springframework.security.web.util.RequestMatcher
 import org.springframework.security.web.access.intercept.{DefaultFilterInvocationSecurityMetadataSource, FilterInvocationSecurityMetadataSource, FilterSecurityInterceptor}
 import org.springframework.security.web.authentication.logout._
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter
@@ -18,15 +16,18 @@ import org.springframework.security.access.vote.{AffirmativeBased, Authenticated
 import org.springframework.security.authentication.{AuthenticationManager, ProviderManager, AnonymousAuthenticationProvider, AuthenticationProvider}
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter
-import org.springframework.security.web.authentication._
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
 import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
 import org.springframework.security.openid.{OpenID4JavaConsumer, OpenIDAuthenticationProvider, OpenIDAuthenticationFilter}
 import java.lang.AssertionError
-import org.springframework.security.web.access.{ExceptionTranslationFilter, AccessDeniedHandlerImpl}
-import session.{SessionAuthenticationStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy}
+import org.springframework.security.web.access.ExceptionTranslationFilter
+import org.springframework.security.web.authentication._
+import org.springframework.security.web.authentication.session.{SessionAuthenticationStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy}
+import org.springframework.security.web.{SecurityFilterChain, AuthenticationEntryPoint}
+import org.springframework.security.web.util.{AnyRequestMatcher, RequestMatcher}
+import org.springframework.context.annotation.Lazy
 
 /**
  * Enum containing the options for secure channel
@@ -38,9 +39,9 @@ object RequiredChannel extends Enumeration {
 abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentication {
   override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
 
-  override val requestCache: RequestCache = new HttpSessionRequestCache
+  override lazy val requestCache: RequestCache = new HttpSessionRequestCache
 
-  override val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
+  override lazy val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
 
   override lazy val requestCacheFilter = {
     new RequestCacheAwareFilter(requestCache)
@@ -54,7 +55,7 @@ abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentica
 /**
  * @author Luke Taylor
  */
-abstract class StatelessFilterChain extends FilterStack with Conversions {
+abstract class StatelessFilterChain extends FilterStack with Conversions with SecurityFilterChain {
   // Controls which requests will be handled by this filter chain
   val requestMatcher : RequestMatcher = "/**"
 
@@ -66,9 +67,9 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
 
   override lazy val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
 
-  val requestCache: RequestCache = new NullRequestCache
-  val rememberMeServices: RememberMeServices = new NullRememberMeServices
-  val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
+  lazy val requestCache: RequestCache = new NullRequestCache
+  lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
+  lazy val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
 
   override lazy val exceptionTranslationFilter = {
     new ExceptionTranslationFilter(entryPoint, requestCache);
@@ -98,6 +99,8 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
 
   private[scalasec] def addInterceptUrl(matcher: RequestMatcher, attributes: ju.List[ConfigAttribute], channel: RequiredChannel.Value) {
     assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
+    assert(!accessUrls.exists(_._1.isInstanceOf[AnyRequestMatcher]), "A universal match has already been included in the " +
+      "list, so any further interceptUrls will have no effect")
     accessUrls = accessUrls + (matcher -> attributes)
     channels = channels + (matcher -> channel)
   }
@@ -115,6 +118,13 @@ abstract class StatelessFilterChain extends FilterStack with Conversions {
   }
 
   def authenticationManager : AuthenticationManager
+
+  // Implementation of SecurityFilterChain for direct use as a Spring Security bean
+  lazy val scFilters = Arrays.asList(filters:_*)
+
+  final def getFilters = scFilters
+
+  final def matches(request: HttpServletRequest) = requestMatcher.matches(request)
 }
 
 trait AnonymousAuthentication extends StatelessFilterChain {
@@ -221,5 +231,8 @@ trait InsertionHelper {
  */
 trait UserService {
   val userDetailsService: UserDetailsService
+//  lazy val userDetailsService: UserDetailsService = {
+//    throw new AssertionError("You need to set the userDetailsService")
+//  }
 }
 

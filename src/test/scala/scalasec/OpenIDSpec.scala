@@ -12,7 +12,7 @@ import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenID
 
 class OpenIDSpec extends FlatSpec with ShouldMatchers with MockitoSugar {
   val filterChainWithOpenID = new FilterChain with OpenID with LoginPageGenerator with AllowAllAuthentication {
-    val userDetailsService = mock[UserDetailsService]
+    override val userDetailsService = mock[UserDetailsService]
   }
 
   "A FilterChain with OpenID" should "have an OpenIDAuthenticationFilter" in {

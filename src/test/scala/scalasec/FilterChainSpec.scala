@@ -22,7 +22,6 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
     val chain = new FilterChain with AllowAllAuthentication {
       interceptUrl(matcher = "/AAA", access = "AAA")
       interceptUrl("/**", "BBB")
-      interceptUrl("/toolate", "XXX")
     }
 
     chain.filters
@@ -32,9 +31,9 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
       case a : Any => fail("Expected DefaultFilterInvocationSecurityMetadataSource but was" + a)
     }
 
-    mds.getAllConfigAttributes.size() should be (3)
-    // /toolate comes after the wildcard so should be ignored
-    assert(mds.getAttributes(stringToFilterInvocation("/toolate")).contains(new SecurityConfig("BBB")))
+    mds.getAllConfigAttributes.size() should be (2)
+    assert(mds.getAttributes(stringToFilterInvocation("/AAA")).contains(new SecurityConfig("AAA")))
+    assert(mds.getAttributes(stringToFilterInvocation("/XXX")).contains(new SecurityConfig("BBB")))
   }
   it should "not allow duplicate interceptUrl patterns" in {
     intercept[AssertionError] {
@@ -48,6 +47,15 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
       new FilterChain with AllowAllAuthentication {
         interceptUrl(matcher = "/aaa", access = "AAA")
         interceptUrl("/aaa", "BBB")
+      }
+    }
+  }
+  it should "not allow additional interceptUrls after a universal match" in {
+    intercept[AssertionError] {
+      new FilterChain with AllowAllAuthentication {
+        interceptUrl("/aaa", "AAA")
+        interceptUrl("/**", "XXX")
+        interceptUrl("/bbb", "BBB")
       }
     }
   }

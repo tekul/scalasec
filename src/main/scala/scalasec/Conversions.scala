@@ -3,7 +3,6 @@ package scalasec
 import org.springframework.security.web.util.{AntPathRequestMatcher, AnyRequestMatcher}
 import collection.immutable.ListMap
 import java.{util => ju}
-import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 
@@ -20,10 +19,6 @@ trait Conversions {
     val result = new ju.LinkedHashMap[A,B]
     m foreach { case (key, value) => result.put(key, value)}
     result
-  }
-
-  implicit def filterChainAsSecurityFilterChain(chain: StatelessFilterChain): SecurityFilterChain = {
-    new SecurityFilterChain(chain.requestMatcher, chain.filters: _*)
   }
 
   implicit def stringToGrantedAuthority(authority: String): GrantedAuthority = {
