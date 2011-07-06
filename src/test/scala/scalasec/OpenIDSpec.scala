@@ -9,7 +9,6 @@ import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenID
 /**
  * @author Luke Taylor
  */
-
 class OpenIDSpec extends FlatSpec with ShouldMatchers with MockitoSugar {
   val filterChainWithOpenID = new FilterChain with OpenID with LoginPageGenerator with AllowAllAuthentication {
     override val userDetailsService = mock[UserDetailsService]
@@ -17,14 +16,15 @@ class OpenIDSpec extends FlatSpec with ShouldMatchers with MockitoSugar {
 
   "A FilterChain with OpenID" should "have an OpenIDAuthenticationFilter" in {
     filterChainWithOpenID.filters.find(_.isInstanceOf[OpenIDAuthenticationFilter]) match {
-      case Some(f) =>
+      case Some(f) => f.asInstanceOf[OpenIDAuthenticationFilter].afterPropertiesSet()
       case None => fail("No OpenID filter found in stack")
     }
   }
   it should "Add an OpenIDAuthenticationProvider" in {
     filterChainWithOpenID.authenticationProviders.length should be (2)
 
-    assert(filterChainWithOpenID.authenticationProviders.head.isInstanceOf[OpenIDAuthenticationProvider])
+    val provider = filterChainWithOpenID.authenticationProviders.head
+    assert(provider.isInstanceOf[OpenIDAuthenticationProvider])
   }
 
 }

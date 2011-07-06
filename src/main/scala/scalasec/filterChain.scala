@@ -27,7 +27,6 @@ import org.springframework.security.web.authentication._
 import org.springframework.security.web.authentication.session.{SessionAuthenticationStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy}
 import org.springframework.security.web.{SecurityFilterChain, AuthenticationEntryPoint}
 import org.springframework.security.web.util.{AnyRequestMatcher, RequestMatcher}
-import org.springframework.context.annotation.Lazy
 
 /**
  * Enum containing the options for secure channel
@@ -39,9 +38,9 @@ object RequiredChannel extends Enumeration {
 abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentication {
   override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
 
-  override lazy val requestCache: RequestCache = new HttpSessionRequestCache
+  override val requestCache: RequestCache = new HttpSessionRequestCache
 
-  override lazy val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
+  override val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
 
   override lazy val requestCacheFilter = {
     new RequestCacheAwareFilter(requestCache)
@@ -65,11 +64,11 @@ abstract class StatelessFilterChain extends FilterStack with Conversions with Se
 
   val securityContextRepository: SecurityContextRepository = new NullSecurityContextRepository
 
-  override lazy val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
+  override val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
 
-  lazy val requestCache: RequestCache = new NullRequestCache
+  val requestCache: RequestCache = new NullRequestCache
   lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
-  lazy val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
+  val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
 
   override lazy val exceptionTranslationFilter = {
     new ExceptionTranslationFilter(entryPoint, requestCache);
@@ -117,7 +116,7 @@ abstract class StatelessFilterChain extends FilterStack with Conversions with Se
     new ProviderManager(Arrays.asList(authenticationProviders:_*), authenticationManager)
   }
 
-  def authenticationManager : AuthenticationManager
+  val authenticationManager : AuthenticationManager
 
   // Implementation of SecurityFilterChain for direct use as a Spring Security bean
   lazy val scFilters = Arrays.asList(filters:_*)

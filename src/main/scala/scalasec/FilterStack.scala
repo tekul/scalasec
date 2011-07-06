@@ -19,7 +19,7 @@ private[scalasec] abstract class FilterStack {
   lazy val loginPageFilter: Filter = NO_FILTER
   lazy val basicAuthenticationFilter: Filter = NO_FILTER
   lazy val requestCacheFilter: Filter = NO_FILTER
-  lazy val servletApiFilter: Filter = NO_FILTER
+  val servletApiFilter: Filter = NO_FILTER
   lazy val rememberMeFilter: Filter = NO_FILTER
   lazy val anonymousFilter: Filter = NO_FILTER
   lazy val sessionManagementFilter: Filter = NO_FILTER

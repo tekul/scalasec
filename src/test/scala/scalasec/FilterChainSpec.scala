@@ -1,13 +1,15 @@
 package scalasec
 
+import org.mockito.Mockito._
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 
 import Conversions._
 import org.springframework.security.web.access.intercept.DefaultFilterInvocationSecurityMetadataSource
 import org.springframework.security.access.SecurityConfig
-import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter
-import org.springframework.security.web.access.ExceptionTranslationFilter
+import org.scalatest.mock.MockitoSugar
+import org.springframework.security.web.savedrequest.RequestCache
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy
 
 trait AllowAllAuthentication extends StatelessFilterChain {
   override val authenticationManager = new AllowAllAuthenticationManager("ROLE_USER")
@@ -17,8 +19,20 @@ trait AllowAllAuthentication extends StatelessFilterChain {
  *
  * @author Luke Taylor
  */
-class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions {
-  "A FilterChain" should "support adding of intercept URLs to security interceptor" in {
+class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions with MockitoSugar  {
+  "A FilterChain" should "allow the use of a custom RequestCache" in {
+    val rc = mock[RequestCache]
+    new FilterChain with AllowAllAuthentication {
+      override val requestCache = rc
+    }
+  }
+  it should "allow the use of a custom SessionAuthenticationStrategy" in {
+    val sas = mock[SessionAuthenticationStrategy]
+    new FilterChain with AllowAllAuthentication {
+      override val sessionAuthenticationStrategy = sas
+    }
+  }
+  it should "support adding of intercept URLs to the security interceptor" in {
     val chain = new FilterChain with AllowAllAuthentication {
       interceptUrl(matcher = "/AAA", access = "AAA")
       interceptUrl("/**", "BBB")
@@ -58,22 +72,5 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
         interceptUrl("/bbb", "BBB")
       }
     }
-  }
-  it should "allow easy insertion of additional filters" in {
-    val chain = new StatelessFilterChain with AllowAllAuthentication with InsertionHelper {
-      override def filters = {
-        insertAfter(classOf[ExceptionTranslationFilter], new X509AuthenticationFilter, super.filters)
-      }
-    }
-
-    assert(chain.filters(3).isInstanceOf[X509AuthenticationFilter])
-
-    val chain2 = new StatelessFilterChain with AllowAllAuthentication with InsertionHelper {
-      override def filters = {
-        insertBefore(classOf[ExceptionTranslationFilter], new X509AuthenticationFilter, super.filters)
-      }
-    }
-
-    assert(chain2.filters(2).isInstanceOf[X509AuthenticationFilter])
   }
 }

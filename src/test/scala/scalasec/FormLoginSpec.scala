@@ -10,7 +10,6 @@ import org.springframework.security.web.authentication.{NullRememberMeServices, 
 /**
  * @author Luke Taylor
  */
-
 class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
   val filterChainWithForm = new FilterChain with FormLogin with LoginPageGenerator with AllowAllAuthentication
   val filterChainWithFormRememberMe = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator with AllowAllAuthentication {
@@ -30,6 +29,12 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
   }
   it should "have a NullRememberMeServices" in {
     assert(filterChainWithForm.formLoginFilter.getRememberMeServices.isInstanceOf[NullRememberMeServices])
+  }
+  it should "allow setting a custom loginPage" in {
+    val chain = new FilterChain with LoginPageGenerator with AllowAllAuthentication with FormLogin {
+      override val loginPage = "/customLogin"
+    }
+    chain.entryPoint.asInstanceOf[LoginUrlAuthenticationEntryPoint].getLoginFormUrl should be ("/customLogin")
   }
 
   "A FilterChain with BasicAuthentication with FormLogin " should "have a LoginUrlAuthenticationEntryPoint" in {
