@@ -3,6 +3,8 @@ import sbt._
 import reaktor.scct.ScctProject
 
 class MyProject(info: ProjectInfo) extends DefaultWebProject(info) with ScctProject {
+//    override def compileOptions = super.compileOptions ++ compileOptions("-Xcheckinit")
+
     val secVersion = "3.1.0.CI-SNAPSHOT"
 
     val seccore    = "org.springframework.security" % "spring-security-core" % secVersion % "compile->default" withSources()
