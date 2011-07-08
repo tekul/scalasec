@@ -1,14 +1,15 @@
 package scalasec
 
-import org.springframework.security.core.Authentication
 import javax.servlet.http.HttpServletRequest
-import java.util.Arrays
+import org.springframework.security.core.Authentication
+import org.springframework.security.access.{AccessDecisionManager, AccessDecisionVoter, ConfigAttribute}
+import org.springframework.security.access.vote.AffirmativeBased
 import org.springframework.security.web.util.{AnyRequestMatcher, RequestMatcher}
-import org.springframework.security.access.{AccessDecisionManager, AccessDecisionVoter, ConfigAttribute, SecurityConfig}
-import org.springframework.security.access.vote.{AffirmativeBased, AuthenticatedVoter, RoleVoter}
+import org.springframework.security.web.access.intercept._
 import collection.immutable.ListMap
 import java.{util => ju}
-import org.springframework.security.web.access.intercept._
+import ju.Arrays
+
 
 /**
  * Trait which contains the FilterSecurityInterceptor, AccessDecisionManager and related beans.

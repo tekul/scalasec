@@ -11,7 +11,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
  */
 trait Conversions {
   implicit def stringToRequestMatcher(pattern: String) = pattern match {
-    case "**" | "/**" => new AnyRequestMatcher()
+    case "**" | "/**" => new AnyRequestMatcher
     case _  => new AntPathRequestMatcher(pattern)
   }
 

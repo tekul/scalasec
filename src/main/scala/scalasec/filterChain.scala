@@ -3,16 +3,16 @@ package scalasec
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter
 
 import javax.servlet.Filter
+import javax.servlet.http.HttpServletRequest
 
-import org.springframework.security.web.session.SessionManagementFilter
 import java.util.Arrays
+import java.lang.AssertionError
+import org.springframework.security.web.session.SessionManagementFilter
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
 import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
-import javax.servlet.http.HttpServletRequest
-import java.lang.AssertionError
 import org.springframework.security.web.access.ExceptionTranslationFilter
 import org.springframework.security.web.authentication._
-import org.springframework.security.web.authentication.session.{SessionAuthenticationStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy}
+import org.springframework.security.web.authentication.session._
 import org.springframework.security.web.{SecurityFilterChain, AuthenticationEntryPoint}
 import org.springframework.security.web.util.RequestMatcher
 
