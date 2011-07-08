@@ -1,18 +1,19 @@
 package sample.config
 
 import scalasec._
-import scalasec.Conversions._
 
 import org.springframework.context.annotation.{Bean, Configuration}
-import org.springframework.security.web.{FilterChainProxy, SecurityFilterChain}
+import org.springframework.security.web.FilterChainProxy
+import org.springframework.security.web.util.IpAddressMatcher
 import org.springframework.security.core.userdetails.{User, UserDetailsService}
-import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import java.util.Arrays
 import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
 
-import scala.collection.JavaConversions._
+import org.springframework.security.authentication.{DefaultAuthenticationEventPublisher, ProviderManager}
+
+import scalasec.WebAccessRules._
 
 /**
  * An @Configuration with sample filter chains defined as separate beans
@@ -27,7 +28,7 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def filterChainProxy = {
-    new FilterChainProxy(formLoginWithScalaAccessRules)
+    new FilterChainProxy(basicFilterChain)
   }
 
   /**
@@ -36,10 +37,10 @@ class ScalaSecurityConfiguration {
   @Bean
   def simpleFormLoginChain: FilterChain = {
     new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
-      override val authenticationManager = testAuthenticationManager
-      override val userDetailsService = testUserDetailsService
-      interceptUrl("/", "IS_AUTHENTICATED_ANONYMOUSLY")
-      interceptUrl("/**", "ROLE_USER")
+      val authenticationManager = testAuthenticationManager
+      val userDetailsService = testUserDetailsService
+      interceptUrl("/", permitAll)
+      interceptUrl("/**", hasRole("ROLE_USER"))
     }
   }
 
@@ -47,10 +48,10 @@ class ScalaSecurityConfiguration {
    * A Basic authentication configuration
    */
   @Bean
-  def basicFilterChain: SecurityFilterChain = {
+  def basicFilterChain: FilterChain = {
     new FilterChain with BasicAuthentication {
-      override val authenticationManager = testAuthenticationManager
-      interceptUrl("/**", "ROLE_USER")
+      val authenticationManager = testAuthenticationManager
+      interceptUrl("/**", hasRole("ROLE_USER"))
     }
   }
 
@@ -61,7 +62,14 @@ class ScalaSecurityConfiguration {
   def testAuthenticationManager = {
     val provider = new DaoAuthenticationProvider
     provider.setUserDetailsService(testUserDetailsService)
-    new ProviderManager(Arrays.asList(provider))
+    val am = new ProviderManager(Arrays.asList(provider))
+    am.setAuthenticationEventPublisher(authenticationEventPublisher)
+    am
+  }
+
+  @Bean
+  def authenticationEventPublisher = {
+    new DefaultAuthenticationEventPublisher
   }
 
   /**
@@ -70,6 +78,8 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def testUserDetailsService = {
+    import scalasec.Conversions._
+
     new UserDetailsService {
       def loadUserByUsername(username: String) = new User(username, username, "ROLE_USER")
     }
@@ -82,27 +92,24 @@ class ScalaSecurityConfiguration {
   @Bean
   def formLoginWithScalaAccessRules = {
     new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
-      override val authenticationManager = testAuthenticationManager
-      override val userDetailsService = testUserDetailsService
-      interceptUrlScala("/", allowAnyone)
-      interceptUrlScala("/scala*", allowAnyone)
-      interceptUrlScala("/eventime*", allowOnEvenTime)
-      interceptUrlScala("/**", allowAnyUser)
-      override val accessDecisionVoters = new ScalaWebVoter :: Nil
+      val authenticationManager = testAuthenticationManager
+      val userDetailsService = testUserDetailsService
+      interceptUrl("/", permitAll)
+      interceptUrl("/scala*", permitAll)
+      interceptUrl("/onlylocal*", isLocalhost)
+      interceptUrl("/eventime*", allowOnEvenTime)
+      interceptUrl("/**", hasRole("ROLE_USER"))
     }
   }
 
-  // Some Scala access rules
-
-  def allowAnyone(a: Authentication, r: HttpServletRequest) = {
-    true
-  }
-
-  def allowAnyUser(a: Authentication, r: HttpServletRequest) = {
-    a.getAuthorities.exists("ROLE_USER" == _.getAuthority)
-  }
-
+  // Some access rules
   def allowOnEvenTime(a: Authentication, r: HttpServletRequest) = {
     java.lang.System.currentTimeMillis() % 2 == 0
+  }
+
+  val localhostMatcher = new IpAddressMatcher("127.0.0.1")
+
+  def isLocalhost(a: Authentication, r: HttpServletRequest) = {
+    localhostMatcher.matches(r)
   }
 }

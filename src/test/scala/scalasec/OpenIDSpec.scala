@@ -26,5 +26,4 @@ class OpenIDSpec extends FlatSpec with ShouldMatchers with MockitoSugar {
     val provider = filterChainWithOpenID.authenticationProviders.head
     assert(provider.isInstanceOf[OpenIDAuthenticationProvider])
   }
-
 }

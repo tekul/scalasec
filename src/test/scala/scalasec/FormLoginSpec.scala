@@ -6,11 +6,15 @@ import org.scalatest.Assertions._
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices
 import org.springframework.security.core.userdetails.{User, UserDetailsService}
 import org.springframework.security.web.authentication.{NullRememberMeServices, LoginUrlAuthenticationEntryPoint}
+import org.scalatest.mock.MockitoSugar
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.core.Authentication
+import org.mockito.Mockito._
 
 /**
  * @author Luke Taylor
  */
-class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
+class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions with MockitoSugar {
   val filterChainWithForm = new FilterChain with FormLogin with LoginPageGenerator with AllowAllAuthentication
   val filterChainWithFormRememberMe = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator with AllowAllAuthentication {
     override val userDetailsService = new UserDetailsService {
@@ -35,6 +39,17 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions {
       override val loginPage = "/customLogin"
     }
     chain.entryPoint.asInstanceOf[LoginUrlAuthenticationEntryPoint].getLoginFormUrl should be ("/customLogin")
+  }
+  it should "allow setting of an AuthenticationManager" in {
+    val am = mock[AuthenticationManager]
+    val a = mock[Authentication]
+    when(am.authenticate(a)).thenReturn(a)
+
+    val fc = new StatelessFilterChain with FormLogin {
+      val authenticationManager = am
+    }
+
+    fc.internalAuthenticationManager.authenticate(a) should be (a)
   }
 
   "A FilterChain with BasicAuthentication with FormLogin " should "have a LoginUrlAuthenticationEntryPoint" in {
