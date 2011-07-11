@@ -32,7 +32,17 @@ class ScalaSecurityConfiguration {
   }
 
   /**
-   * A form-login configuration with remember-me and other standard options
+   * A form-login configuration with remember-me and other standard options.
+   * Namespace equivalent would be:
+   * <pre>
+   *   &lt;http use-expressions="true">
+   *     &lt;intercept-url pattern="/" access="permitAll" />
+   *     &lt;intercept-url pattern="/&#42*" access="hasRole('ROLE_USER')" />
+   *     &lt;form-login />
+   *     &lt;logout />
+   *     &lt;remember-me />
+   *   &lt;/http>
+   * </pre>
    */
   @Bean
   def simpleFormLoginChain: FilterChain = {
