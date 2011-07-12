@@ -10,23 +10,24 @@ import collection.immutable.ListMap
 import java.{util => ju}
 import ju.Arrays
 
+import Conversions._
 
 /**
  * Trait which contains the FilterSecurityInterceptor, AccessDecisionManager and related beans.
  *
  * @author Luke Taylor
  */
-trait WebAccessControl extends FilterStack with Conversions {
-  override lazy val filterSecurityInterceptor = {
+trait WebAccessControl {
+  lazy val filterSecurityInterceptor = {
     val fsi = new FilterSecurityInterceptor()
     fsi.setSecurityMetadataSource(securityMetadataSource)
     fsi.setAccessDecisionManager(accessDecisionManager)
     fsi
   }
 
-  private[scalasec] var accessUrls : ListMap[RequestMatcher, ju.List[ConfigAttribute]] = ListMap()
+  private var accessUrls : ListMap[RequestMatcher, ju.List[ConfigAttribute]] = ListMap()
 
-  private[scalasec] def securityMetadataSource : FilterInvocationSecurityMetadataSource
+  private def securityMetadataSource : FilterInvocationSecurityMetadataSource
           = new DefaultFilterInvocationSecurityMetadataSource(accessUrls)
 
   def interceptUrl(matcher: RequestMatcher, access: (Authentication, HttpServletRequest) => Boolean, channel: RequiredChannel.Value = RequiredChannel.Any) {

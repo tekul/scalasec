@@ -28,7 +28,7 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def filterChainProxy = {
-    new FilterChainProxy(basicFilterChain)
+    new FilterChainProxy(formLoginWithScalaAccessRules)
   }
 
   /**
