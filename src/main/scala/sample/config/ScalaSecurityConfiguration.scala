@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.authentication.{DefaultAuthenticationEventPublisher, ProviderManager}
 
 import scalasec.WebAccessRules._
+import org.springframework.security.core.session.SessionRegistryImpl
+import org.springframework.security.access.event.LoggerListener
 
 /**
  * An @Configuration with sample filter chains defined as separate beans
@@ -27,9 +29,7 @@ class ScalaSecurityConfiguration {
    * The FilterChainProxy bean which is delegated to from web.xml
    */
   @Bean
-  def filterChainProxy = {
-    new FilterChainProxy(formLoginWithScalaAccessRules)
-  }
+  def filterChainProxy = new FilterChainProxy(simpleFormLoginChain)
 
   /**
    * A form-login configuration with remember-me and other standard options.
@@ -46,9 +46,10 @@ class ScalaSecurityConfiguration {
    */
   @Bean
   def simpleFormLoginChain: FilterChain = {
-    new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
+    new FilterChain with FormLogin with Logout with RememberMe with ConcurrentSessionControl with LoginPageGenerator {
       val authenticationManager = testAuthenticationManager
       val userDetailsService = testUserDetailsService
+      sessionAuthenticationStrategy.setExceptionIfMaximumExceeded(true)
       interceptUrl("/", permitAll)
       interceptUrl("/**", hasRole("ROLE_USER"))
     }
@@ -78,9 +79,7 @@ class ScalaSecurityConfiguration {
   }
 
   @Bean
-  def authenticationEventPublisher = {
-    new DefaultAuthenticationEventPublisher
-  }
+  def authenticationEventPublisher = new DefaultAuthenticationEventPublisher
 
   /**
    * Test UserDetailsService which accepts any username and returns a user object which has a password equal to the
@@ -112,14 +111,14 @@ class ScalaSecurityConfiguration {
     }
   }
 
+  @Bean def accessLogger = new org.springframework.security.access.event.LoggerListener
+
+  @Bean def authenticationLogger = new org.springframework.security.authentication.event.LoggerListener
+
   // Some access rules
-  def allowOnEvenTime(a: Authentication, r: HttpServletRequest) = {
-    java.lang.System.currentTimeMillis() % 2 == 0
-  }
+  def allowOnEvenTime(a: Authentication, r: HttpServletRequest) = java.lang.System.currentTimeMillis() % 2 == 0
 
   val localhostMatcher = new IpAddressMatcher("127.0.0.1")
 
-  def isLocalhost(a: Authentication, r: HttpServletRequest) = {
-    localhostMatcher.matches(r)
-  }
+  def isLocalhost(a: Authentication, r: HttpServletRequest) = localhostMatcher.matches(r)
 }

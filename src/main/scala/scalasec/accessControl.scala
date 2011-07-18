@@ -17,11 +17,12 @@ import Conversions._
  *
  * @author Luke Taylor
  */
-trait WebAccessControl {
+trait WebAccessControl extends EventPublisher {
   lazy val filterSecurityInterceptor = {
     val fsi = new FilterSecurityInterceptor()
     fsi.setSecurityMetadataSource(securityMetadataSource)
     fsi.setAccessDecisionManager(accessDecisionManager)
+    fsi.setApplicationEventPublisher(eventPublisher)
     fsi
   }
 

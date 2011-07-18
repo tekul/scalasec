@@ -7,36 +7,32 @@ import javax.servlet.http.HttpServletRequest
 
 import java.util.Arrays
 import java.lang.AssertionError
-import org.springframework.security.web.session.SessionManagementFilter
 import org.springframework.security.web.context.{SecurityContextRepository, NullSecurityContextRepository, HttpSessionSecurityContextRepository, SecurityContextPersistenceFilter}
 import org.springframework.security.web.savedrequest.{RequestCache, HttpSessionRequestCache, NullRequestCache, RequestCacheAwareFilter}
 import org.springframework.security.web.access.ExceptionTranslationFilter
 import org.springframework.security.web.authentication._
-import org.springframework.security.web.authentication.session._
 import org.springframework.security.web.{SecurityFilterChain, AuthenticationEntryPoint}
 import org.springframework.security.web.util.RequestMatcher
 
 import FilterPositions._
 
 /**
- *
+ * Extends <code>StatelessFilterChain</code> with the beans and filters which make up the configuration for a
+ * stateful application.
  */
-abstract class FilterChain extends StatelessFilterChain with AnonymousAuthentication {
+abstract class FilterChain extends StatelessFilterChain with SessionManagement with AnonymousAuthentication {
   override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
 
   override val requestCache: RequestCache = new HttpSessionRequestCache
 
-  override val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
-
   lazy val requestCacheFilter = new RequestCacheAwareFilter(requestCache)
 
-  lazy val sessionManagementFilter : Filter = new SessionManagementFilter(securityContextRepository, sessionAuthenticationStrategy)
-
-  override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) ::
-      (SESSION_MANAGEMENT_FILTER, sessionManagementFilter) :: super.filtersInternal
+  override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
 }
 
 /**
+ * Basic configuration class which provides the core security filters configured to handle stateless requests.
+ *
  * @author Luke Taylor
  */
 abstract class StatelessFilterChain extends Conversions with WebAccessControl with SecurityFilterChain {
@@ -46,8 +42,6 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
   // Services which are shared between filters
   val requestCache: RequestCache = new NullRequestCache
   val securityContextRepository: SecurityContextRepository = new NullSecurityContextRepository
-  lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
-  val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new NullAuthenticatedSessionStrategy
 
   lazy val securityContextPersistenceFilter = new SecurityContextPersistenceFilter(securityContextRepository)
 
@@ -60,9 +54,11 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
   /**
    * Returns the filters provided by this class along with their index in the filter chain for sorting
    */
-  def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] =
-      (SECURITY_CONTEXT_FILTER, securityContextPersistenceFilter) :: (SERVLET_API_SUPPORT_FILTER, servletApiFilter) ::
-      (EXCEPTION_TRANSLATION_FILTER, exceptionTranslationFilter) :: (FILTER_SECURITY_INTERCEPTOR, filterSecurityInterceptor) :: Nil
+  def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] = List(
+      (SECURITY_CONTEXT_FILTER, securityContextPersistenceFilter),
+      (SERVLET_API_SUPPORT_FILTER, servletApiFilter),
+      (EXCEPTION_TRANSLATION_FILTER, exceptionTranslationFilter),
+      (FILTER_SECURITY_INTERCEPTOR, filterSecurityInterceptor))
 
   def filters: List[Filter] =
     for {
@@ -72,7 +68,7 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
   // Implementation of SecurityFilterChain for direct use as a Spring Security bean
   private lazy val scFilters = Arrays.asList(filters:_*)
 
-  final def getFilters = scFilters
+  lazy val getFilters = scFilters
 
   final def matches(request: HttpServletRequest) = requestMatcher.matches(request)
 }

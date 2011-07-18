@@ -40,7 +40,7 @@ trait AnonymousAuthentication extends StatelessFilterChain with FilterChainAuthe
   override def filtersInternal = (ANONYMOUS_FILTER, anonymousFilter) :: super.filtersInternal
 }
 
-trait Logout extends StatelessFilterChain {
+trait Logout extends StatelessFilterChain with RememberMeServicesAware {
   lazy val logoutHandlers: List[LogoutHandler] = {
     val sclh = new SecurityContextLogoutHandler()
     rememberMeServices match {
@@ -55,10 +55,9 @@ trait Logout extends StatelessFilterChain {
 }
 
 private[scalasec] trait LoginPage extends StatelessFilterChain {
-  val loginPage: String = null
+  val loginPage: String
 
   override def entryPoint : AuthenticationEntryPoint = {
-    assert(loginPage != null, "You need to set the loginPage value or add the LoginPageGenerator trait")
     new LoginUrlAuthenticationEntryPoint(loginPage)
   }
 }
@@ -74,23 +73,38 @@ trait LoginPageGenerator extends StatelessFilterChain with FormLogin {
   override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
 }
 
-trait FormLogin extends StatelessFilterChain with LoginPage with FilterChainAuthenticationManager {
+trait FormLogin extends StatelessFilterChain with EventPublisher
+    with LoginPage
+    with RememberMeServicesAware
+    with SessionAuthentication
+    with FilterChainAuthenticationManager {
+
   lazy val formLoginFilter = {
     val filter = new UsernamePasswordAuthenticationFilter
     filter.setAuthenticationManager(authenticationManager)
+    filter.setSessionAuthenticationStrategy(sessionAuthenticationStrategy)
     filter.setRememberMeServices(rememberMeServices)
+    filter.setApplicationEventPublisher(eventPublisher)
     filter
   }
 
   override def filtersInternal = (FORM_LOGIN_FILTER, formLoginFilter) :: super.filtersInternal
 }
 
-trait OpenID extends StatelessFilterChain with LoginPage with UserService with FilterChainAuthenticationManager {
+trait OpenID extends StatelessFilterChain with EventPublisher
+    with LoginPage
+    with SessionAuthentication
+    with RememberMeServicesAware
+    with UserService
+    with FilterChainAuthenticationManager {
+
   lazy val openIDFilter = {
     val filter = new OpenIDAuthenticationFilter
     filter.setConsumer(new OpenID4JavaConsumer)
     filter.setRememberMeServices(rememberMeServices)
     filter.setAuthenticationManager(internalAuthenticationManager)
+    filter.setSessionAuthenticationStrategy(sessionAuthenticationStrategy)
+    filter.setApplicationEventPublisher(eventPublisher)
     filter
   }
   lazy val openIDProvider = {
@@ -115,10 +129,23 @@ trait BasicAuthentication extends StatelessFilterChain with FilterChainAuthentic
   override def filtersInternal = (BASIC_AUTH_FILTER, basicAuthenticationFilter) :: super.filtersInternal
 }
 
-trait RememberMe extends StatelessFilterChain with UserService with FilterChainAuthenticationManager {
+private[scalasec] sealed trait RememberMeServicesAware {
+  lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
+}
+
+trait RememberMe extends StatelessFilterChain
+    with RememberMeServicesAware
+    with EventPublisher
+    with UserService
+    with FilterChainAuthenticationManager {
+
   val rememberMeKey = "todo"
 
-  lazy val rememberMeFilter = new RememberMeAuthenticationFilter(internalAuthenticationManager, rememberMeServices)
+  lazy val rememberMeFilter = {
+    val filter = new RememberMeAuthenticationFilter(internalAuthenticationManager, rememberMeServices)
+    filter.setApplicationEventPublisher(eventPublisher)
+    filter
+  }
 
   val rememberMeProvider = new RememberMeAuthenticationProvider(rememberMeKey)
 

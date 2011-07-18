@@ -22,7 +22,7 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions wi
     }
   }
   val filterChainWithBasicForm = new FilterChain with BasicAuthentication with FormLogin with LoginPageGenerator with AllowAllAuthentication
-  val filterChainWithFormBasic = new FilterChain with FormLogin with BasicAuthentication with AllowAllAuthentication
+  val filterChainWithFormBasic = new FilterChain with FormLogin with LoginPageGenerator with BasicAuthentication with AllowAllAuthentication
 
 
   "A FilterChain with FormLogin" should "have a LoginUrlAuthenticationEntryPoint" in {
@@ -45,7 +45,7 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions wi
     val a = mock[Authentication]
     when(am.authenticate(a)).thenReturn(a)
 
-    val fc = new StatelessFilterChain with FormLogin {
+    val fc = new StatelessFilterChain with FormLogin with LoginPageGenerator {
       val authenticationManager = am
     }
 
@@ -59,8 +59,8 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions wi
   "A FilterChain with FormLogin with BasicAuthentication" should "have a BasicAuthenticationEntryPoint" in {
     filterChainWithFormBasic.entryPoint should be theSameInstanceAs (filterChainWithFormBasic.basicAuthenticationEntryPoint)
   }
-  it should "have 9 filters" in {
-    filterChainWithFormBasic.filters.length should be (9)
+  it should "have 10 filters" in {
+    filterChainWithFormBasic.filters.length should be (10)
   }
 
   "A FilterChain with FormLogin with RememberMe" should "have a TokenBasedRememberMeServices" in {
