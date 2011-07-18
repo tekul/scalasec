@@ -19,6 +19,8 @@ object WebAccessRules {
 
   def hasRole(role: String)(a: Authentication, r: HttpServletRequest) = a.getAuthorities.exists(role == _.getAuthority)
 
+  def hasAnyRole(roles: String*)(a: Authentication, r: HttpServletRequest) = roles.exists(hasRole(_)(a, r))
+
   def hasAuthority(role: String)(a: Authentication, r: HttpServletRequest) = hasRole _
 
   def hasIpAddress(address: String)(a: Authentication, r: HttpServletRequest) = new IpAddressMatcher(address).matches(r)
