@@ -15,3 +15,4 @@ Browse to http://localhost:8080/anyurl/
 
 Log in in with any username and password=username.
 
+There's also a gradle build script as an alternative to sbt.
