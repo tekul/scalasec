@@ -4,9 +4,7 @@ import org.springframework.context.{ApplicationEvent, ApplicationEventPublisher,
 
 /**
  * Trait which allows non Spring Bean classes to make use of the application context's
- * <code>ApplicationEventPublisher</code>.
- *
- * @author Luke Taylor
+ * `ApplicationEventPublisher`.
  */
 private[scalasec] trait EventPublisher extends ApplicationEventPublisherAware {
   var delegate: Option[ApplicationEventPublisher] = None

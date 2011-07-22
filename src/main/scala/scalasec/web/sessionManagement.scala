@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import javax.servlet.Filter
 import FilterPositions._
@@ -23,7 +23,7 @@ trait SessionManagement extends StatelessFilterChain with SessionAuthentication 
 
   lazy val sessionManagementFilter: Filter = new SessionManagementFilter(securityContextRepository, sessionAuthenticationStrategy)
 
-  protected[scalasec] override def filtersInternal = (SESSION_MANAGEMENT_FILTER, sessionManagementFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (SESSION_MANAGEMENT_FILTER, sessionManagementFilter) :: super.filtersInternal
 }
 
 /**
@@ -62,7 +62,7 @@ trait ConcurrentSessionControl extends SessionManagement with ApplicationListene
   val concurrentSessionFilter = new ConcurrentSessionFilter(sessionRegistry, sessionExpiredUrl)
 
 
-  protected[scalasec] override def filtersInternal = (CONCURRENT_SESSION_FILTER, concurrentSessionFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (CONCURRENT_SESSION_FILTER, concurrentSessionFilter) :: super.filtersInternal
 
   /**
    * Implementation of `ApplicationListener`. Delegates to the `SessionRegistry` unless it has been overridden with a

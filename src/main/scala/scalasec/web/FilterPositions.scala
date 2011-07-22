@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import javax.servlet.Filter
 
@@ -10,7 +10,7 @@ import javax.servlet.Filter
  *
  * The return value of `filtersInternal` are sorted based on these values to order the filter chain correctly.
  */
-private[scalasec] object FilterPositions extends Enumeration {
+private[web] object FilterPositions extends Enumeration {
   val CHANNEL_FILTER,
     CONCURRENT_SESSION_FILTER,
     SECURITY_CONTEXT_FILTER,
@@ -36,7 +36,7 @@ private[scalasec] object FilterPositions extends Enumeration {
   /**
    * The method used when sorting the list returned by `filtersInternal`.
    */
-  private[scalasec] def comparePositions (a: Tuple2[FilterPositions.Value,Filter], b: Tuple2[FilterPositions.Value,Filter]) = {
+  private[web] def comparePositions (a: Tuple2[FilterPositions.Value,Filter], b: Tuple2[FilterPositions.Value,Filter]) = {
     a._1 < b._1
   }
 

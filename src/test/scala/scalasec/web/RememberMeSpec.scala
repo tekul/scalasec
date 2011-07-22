@@ -1,13 +1,9 @@
-package scalasec
+package scalasec.web
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter
 import org.springframework.security.core.userdetails.{User, UserDetailsService}
-
-/**
- * @author Luke Taylor
- */
 
 class RememberMeSpec extends FlatSpec with ShouldMatchers with TestConversions {
   val filterChainWithFormRememberMe = new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator with AllowAllAuthentication {

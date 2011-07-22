@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter
 
@@ -15,6 +15,7 @@ import org.springframework.security.web.{SecurityFilterChain, AuthenticationEntr
 import org.springframework.security.web.util.RequestMatcher
 
 import FilterPositions._
+import scalasec.Conversions
 
 /**
  * This is the class that is most likely to be used as the starting point for a configuration.
@@ -28,7 +29,7 @@ abstract class FilterChain extends StatelessFilterChain with SessionManagement w
 
   lazy val requestCacheFilter = new RequestCacheAwareFilter(requestCache)
 
-  protected[scalasec] override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
 }
 
 /**
@@ -55,7 +56,7 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
   /**
    * Returns the filters provided by this class along with their index in the filter chain for sorting
    */
-  protected[scalasec] def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] = List(
+  protected[web] def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] = List(
       (SECURITY_CONTEXT_FILTER, securityContextPersistenceFilter),
       (SERVLET_API_SUPPORT_FILTER, servletApiFilter),
       (EXCEPTION_TRANSLATION_FILTER, exceptionTranslationFilter),

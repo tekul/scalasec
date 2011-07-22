@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers

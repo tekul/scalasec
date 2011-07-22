@@ -1,24 +1,17 @@
 package scalasec
 
 import org.springframework.security.web.util.{AntPathRequestMatcher, AnyRequestMatcher}
-import collection.immutable.ListMap
 import java.{util => ju}
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 
 /**
- * @author Luke Taylor
+ * Useful Spring Security implicit conversions.
  */
 trait Conversions {
   implicit def stringToRequestMatcher(pattern: String) = pattern match {
     case "**" | "/**" => new AnyRequestMatcher
     case _  => new AntPathRequestMatcher(pattern)
-  }
-
-  implicit def listMapAsJavaLinkedHashMap[A, B](m : ListMap[A, B]): ju.LinkedHashMap[A, B] = {
-    val result = new ju.LinkedHashMap[A,B]
-    m foreach { case (key, value) => result.put(key, value)}
-    result
   }
 
   implicit def stringToGrantedAuthority(authority: String): GrantedAuthority = {

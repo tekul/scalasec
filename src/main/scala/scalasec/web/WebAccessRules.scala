@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.springframework.security.core.Authentication
 import javax.servlet.http.HttpServletRequest
@@ -7,9 +7,7 @@ import scala.collection.JavaConversions._
 import org.springframework.security.web.util.IpAddressMatcher
 
 /**
- * Access rule functions for use in interceptUrl access arguments
- *
- * @author Luke Taylor
+ * Access rule functions for use in `interceptUrl` access arguments.
  */
 object WebAccessRules {
 

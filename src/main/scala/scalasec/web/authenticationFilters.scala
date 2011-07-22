@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.springframework.security.authentication._
 import org.springframework.security.web.authentication.logout._
@@ -7,10 +7,11 @@ import org.springframework.security.web.authentication.ui.DefaultLoginPageGenera
 import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenID4JavaConsumer, OpenIDAuthenticationFilter}
 import org.springframework.security.web.authentication.www.{BasicAuthenticationFilter, BasicAuthenticationEntryPoint}
 import org.springframework.security.web.authentication._
+import org.springframework.security.web.authentication.rememberme._
 import java.util.Arrays
-import rememberme._
 
 import FilterPositions._
+import scalasec._
 
 /**
  * Encapsulates the internal `ProviderManager` and `AuthenticationProvider`s user by the
@@ -23,7 +24,7 @@ private[scalasec] trait FilterChainAuthenticationManager {
    */
   val authenticationManager : AuthenticationManager
 
-  protected[scalasec] def authenticationProviders : List[AuthenticationProvider] = Nil
+  protected[web] def authenticationProviders : List[AuthenticationProvider] = Nil
 
   private[scalasec] lazy val internalAuthenticationManager : ProviderManager =
     new ProviderManager(Arrays.asList(authenticationProviders:_*), authenticationManager)
@@ -42,8 +43,8 @@ trait AnonymousAuthentication extends StatelessFilterChain with FilterChainAuthe
 
   lazy val anonymousFilter = new AnonymousAuthenticationFilter(anonymousKey)
 
-  protected[scalasec] override def authenticationProviders = anonymousProvider :: super.authenticationProviders
-  protected[scalasec] override def filtersInternal = (ANONYMOUS_FILTER, anonymousFilter) :: super.filtersInternal
+  protected[web] override def authenticationProviders = anonymousProvider :: super.authenticationProviders
+  protected[web] override def filtersInternal = (ANONYMOUS_FILTER, anonymousFilter) :: super.filtersInternal
 }
 
 /**
@@ -78,14 +79,14 @@ trait Logout extends StatelessFilterChain with RememberMeServicesAware {
    */
   lazy val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
 
-  protected[scalasec] override def filtersInternal = (LOGOUT_FILTER, logoutFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (LOGOUT_FILTER, logoutFilter) :: super.filtersInternal
 }
 
 /**
  * Provides the `loginPage` URL and overrides the `AuthenticationEntryPoint` to redirect to the page
  * when a user needs to be authenticated.
  */
-private[scalasec] sealed trait LoginPage extends StatelessFilterChain {
+private[web] sealed trait LoginPage extends StatelessFilterChain {
   /**
    * The login page URL.
    *
@@ -107,7 +108,7 @@ trait LoginPageGenerator extends StatelessFilterChain with FormLogin {
 
   private lazy val loginPageFilter = new DefaultLoginPageGeneratingFilter(formLoginFilter.asInstanceOf[UsernamePasswordAuthenticationFilter])
 
-  protected[scalasec] override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
 }
 
 /**
@@ -135,7 +136,7 @@ trait FormLogin extends StatelessFilterChain with EventPublisher
     filter
   }
 
-  protected[scalasec] override def filtersInternal = (FORM_LOGIN_FILTER, formLoginFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (FORM_LOGIN_FILTER, formLoginFilter) :: super.filtersInternal
 }
 
 /**
@@ -164,8 +165,8 @@ trait OpenID extends StatelessFilterChain with EventPublisher
     provider
   }
 
-  protected[scalasec] override def authenticationProviders = openIDProvider :: super.authenticationProviders
-  protected[scalasec] override def filtersInternal = (OPENID_FILTER, openIDFilter) :: super.filtersInternal
+  protected[web] override def authenticationProviders = openIDProvider :: super.authenticationProviders
+  protected[web] override def filtersInternal = (OPENID_FILTER, openIDFilter) :: super.filtersInternal
 }
 
 /**
@@ -179,10 +180,10 @@ trait BasicAuthentication extends StatelessFilterChain with FilterChainAuthentic
 
   override lazy val entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
 
-  protected[scalasec] override def filtersInternal = (BASIC_AUTH_FILTER, basicAuthenticationFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (BASIC_AUTH_FILTER, basicAuthenticationFilter) :: super.filtersInternal
 }
 
-private[scalasec] sealed trait RememberMeServicesAware {
+private[web] sealed trait RememberMeServicesAware {
   lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
 }
 
@@ -207,8 +208,8 @@ trait RememberMe extends StatelessFilterChain
 
   override lazy val rememberMeServices: RememberMeServices = new TokenBasedRememberMeServices(rememberMeKey, userDetailsService)
 
-  protected[scalasec] override def authenticationProviders = rememberMeProvider :: super.authenticationProviders
-  protected[scalasec] override def filtersInternal = (REMEMBER_ME_FILTER, rememberMeFilter) :: super.filtersInternal
+  protected[web] override def authenticationProviders = rememberMeProvider :: super.authenticationProviders
+  protected[web] override def filtersInternal = (REMEMBER_ME_FILTER, rememberMeFilter) :: super.filtersInternal
 }
 
 /**

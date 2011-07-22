@@ -6,7 +6,9 @@ import org.springframework.security.core.Authentication
 import Conversions._
 
 /**
- * @author Luke Taylor
+ * `AuthenticationManager` for testing.
+ *
+ * Accepts any authentication request
  */
 class AllowAllAuthenticationManager (authorities : String*) extends AuthenticationManager {
 

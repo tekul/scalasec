@@ -1,6 +1,6 @@
 package sample.config
 
-import scalasec._
+import scalasec.web._
 
 import org.springframework.context.annotation.{Bean, Configuration}
 import org.springframework.security.web.FilterChainProxy
@@ -13,7 +13,7 @@ import org.springframework.security.core.Authentication
 
 import org.springframework.security.authentication.{DefaultAuthenticationEventPublisher, ProviderManager}
 
-import scalasec.WebAccessRules._
+import scalasec.web.WebAccessRules._
 
 /**
  * An @Configuration with sample filter chains defined as separate beans.

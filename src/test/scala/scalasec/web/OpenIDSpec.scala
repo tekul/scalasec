@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.scalatest.mock.MockitoSugar
 import org.springframework.security.core.userdetails.UserDetailsService

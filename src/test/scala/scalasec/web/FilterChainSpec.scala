@@ -1,9 +1,9 @@
-package scalasec
+package scalasec.web
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 
-import Conversions._
+import scalasec.Conversions._
 import org.springframework.security.web.access.intercept.DefaultFilterInvocationSecurityMetadataSource
 import org.scalatest.mock.MockitoSugar
 import org.springframework.security.web.savedrequest.RequestCache
@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 
 import scala.collection.JavaConversions._
 import WebAccessRules._
+import scalasec.AllowAllAuthenticationManager
 
 trait AllowAllAuthentication extends FilterChainAuthenticationManager {
   override val authenticationManager = new AllowAllAuthenticationManager("ROLE_USER")
@@ -51,14 +52,14 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
     mds.getAttributes(stringToFilterInvocation("/XYZ")).toList.head.asInstanceOf[ScalaWebConfigAttribute].predicate(null,null) should be(false)
   }
   it should "not allow duplicate interceptUrl patterns" in {
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       new FilterChain with AllowAllAuthentication {
         interceptUrl(matcher = "/**", access = permitAll)
         interceptUrl("**", denyAll)
       }
     }
 
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       new FilterChain with AllowAllAuthentication {
         interceptUrl(matcher = "/aaa", access = permitAll)
         interceptUrl("/aaa", denyAll)
@@ -66,7 +67,7 @@ class FilterChainSpec extends FlatSpec with ShouldMatchers with TestConversions 
     }
   }
   it should "not allow additional interceptUrls after a universal match" in {
-    intercept[AssertionError] {
+    intercept[IllegalArgumentException] {
       new FilterChain with AllowAllAuthentication {
         interceptUrl("/aaa", permitAll)
         interceptUrl("/**", permitAll)

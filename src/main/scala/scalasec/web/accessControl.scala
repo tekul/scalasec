@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import javax.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
@@ -10,12 +10,15 @@ import collection.immutable.ListMap
 import java.{util => ju}
 import ju.Arrays
 
-import Conversions._
+import scalasec._
+
+import WebConversions._
 
 /**
  * Trait which contains the `FilterSecurityInterceptor`, `AccessDecisionManager` and related beans.
  */
 trait WebAccessControl extends EventPublisher {
+
   lazy val filterSecurityInterceptor = {
     val fsi = new FilterSecurityInterceptor()
     fsi.setSecurityMetadataSource(securityMetadataSource)

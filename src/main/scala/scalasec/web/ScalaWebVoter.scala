@@ -1,4 +1,4 @@
-package scalasec
+package scalasec.web
 
 import org.springframework.security.web.FilterInvocation
 import org.springframework.security.access.{ConfigAttribute, AccessDecisionVoter}
@@ -8,9 +8,12 @@ import java.{util => ju}
 import scala.collection.JavaConversions._
 
 /**
- * @author Luke Taylor
+ * `AccessDecisionVoter` which checks for a `ScalaWebConfigAttribute`and uses it to decide whether to grant access.
+ * Abstains if no attribute is found. Otherwise it applies the attribute's `predicate` function to the
+ * current `Authentication` and `HttpServletRequest`, voting to grant access if the function returns `true` and
+ * otherwise denying access.
  */
-class ScalaWebVoter extends AccessDecisionVoter[FilterInvocation] {
+private[web] class ScalaWebVoter extends AccessDecisionVoter[FilterInvocation] {
   def vote(authentication: Authentication, secured : FilterInvocation, attributes: ju.Collection[ConfigAttribute]) = {
     attributes.find(_.isInstanceOf[ScalaWebConfigAttribute]) match {
       case Some(s) =>
