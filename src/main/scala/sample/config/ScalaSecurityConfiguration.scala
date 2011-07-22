@@ -14,11 +14,9 @@ import org.springframework.security.core.Authentication
 import org.springframework.security.authentication.{DefaultAuthenticationEventPublisher, ProviderManager}
 
 import scalasec.WebAccessRules._
-import org.springframework.security.core.session.SessionRegistryImpl
-import org.springframework.security.access.event.LoggerListener
 
 /**
- * An @Configuration with sample filter chains defined as separate beans
+ * An @Configuration with sample filter chains defined as separate beans.
  *
  * @author Luke Taylor
  */
@@ -29,7 +27,7 @@ class ScalaSecurityConfiguration {
    * The FilterChainProxy bean which is delegated to from web.xml
    */
   @Bean
-  def filterChainProxy = new FilterChainProxy(simpleFormLoginChain)
+  def filterChainProxy = new FilterChainProxy(filterChainWithLotsOfStuff)
 
   /**
    * A form-login configuration with remember-me and other standard options.
@@ -45,26 +43,23 @@ class ScalaSecurityConfiguration {
    * </pre>
    */
   @Bean
-  def simpleFormLoginChain: FilterChain = {
-    new FilterChain with FormLogin with Logout with RememberMe with ConcurrentSessionControl with LoginPageGenerator {
+  def simpleFormLoginChain =
+    new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
       val authenticationManager = testAuthenticationManager
       val userDetailsService = testUserDetailsService
-      sessionAuthenticationStrategy.setExceptionIfMaximumExceeded(true)
       interceptUrl("/", permitAll)
       interceptUrl("/**", hasRole("ROLE_USER"))
     }
-  }
 
   /**
    * A Basic authentication configuration
    */
   @Bean
-  def basicFilterChain: FilterChain = {
+  def basicFilterChain: FilterChain =
     new FilterChain with BasicAuthentication {
       val authenticationManager = testAuthenticationManager
       interceptUrl("/**", hasRole("ROLE_USER"))
     }
-  }
 
   /**
    * Simple AuthenticationManager setup for testing.
@@ -94,20 +89,17 @@ class ScalaSecurityConfiguration {
     }
   }
 
-  /**
-   * Form-login configuration which uses Scala functions as the access-control rules as a more powerful alternative
-   * to EL.
-   */
   @Bean
-  def formLoginWithScalaAccessRules = {
-    new FilterChain with FormLogin with Logout with RememberMe with LoginPageGenerator {
-      val authenticationManager = testAuthenticationManager
-      val userDetailsService = testUserDetailsService
+  def filterChainWithLotsOfStuff = {
+    new FilterChain with BasicAuthentication with FormLogin with Logout with RememberMe with ConcurrentSessionControl with LoginPageGenerator {
       interceptUrl("/", permitAll)
       interceptUrl("/scala*", permitAll)
       interceptUrl("/onlylocal*", isLocalhost)
       interceptUrl("/eventime*", allowOnEvenTime)
       interceptUrl("/**", hasRole("ROLE_USER"))
+      sessionAuthenticationStrategy.setExceptionIfMaximumExceeded(true)
+      val authenticationManager = testAuthenticationManager
+      val userDetailsService = testUserDetailsService
     }
   }
 

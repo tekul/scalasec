@@ -3,9 +3,13 @@ package scalasec
 import javax.servlet.Filter
 
 /**
- * @author Luke Taylor
+ * Enum of standard filter positions.
+ *
+ * Allows traits/classes which contribute filters by overriding the `filtersInternal` method to specify the
+ * position at which the filter should occur.
+ *
+ * The return value of `filtersInternal` are sorted based on these values to order the filter chain correctly.
  */
-
 private[scalasec] object FilterPositions extends Enumeration {
   val CHANNEL_FILTER,
     CONCURRENT_SESSION_FILTER,
@@ -29,7 +33,10 @@ private[scalasec] object FilterPositions extends Enumeration {
     FILTER_SECURITY_INTERCEPTOR,
     SWITCH_USER_FILTER = Value
 
-  def comparePositions (a: Tuple2[FilterPositions.Value,Filter], b: Tuple2[FilterPositions.Value,Filter]) = {
+  /**
+   * The method used when sorting the list returned by `filtersInternal`.
+   */
+  private[scalasec] def comparePositions (a: Tuple2[FilterPositions.Value,Filter], b: Tuple2[FilterPositions.Value,Filter]) = {
     a._1 < b._1
   }
 

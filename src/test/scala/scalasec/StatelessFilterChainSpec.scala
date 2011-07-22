@@ -7,6 +7,8 @@ import org.scalatest.mock.MockitoSugar
 import org.springframework.security.web.access.ExceptionTranslationFilter
 import org.springframework.security.web.authentication.preauth.x509.X509AuthenticationFilter
 
+import InsertionHelper._
+
 /**
  * @author Luke Taylor
  */
@@ -21,13 +23,21 @@ class StatelessFilterChainSpec extends FlatSpec with ShouldMatchers with TestCon
 
     assert(chain.filters(3).isInstanceOf[X509AuthenticationFilter])
 
-    val chain2 = new StatelessFilterChain with AllowAllAuthentication with InsertionHelper {
+    val chain2 = new StatelessFilterChain with AllowAllAuthentication {
       override def filters = {
         insertBefore(classOf[ExceptionTranslationFilter], new X509AuthenticationFilter, super.filters)
       }
     }
 
     assert(chain2.filters(2).isInstanceOf[X509AuthenticationFilter])
+
+    val chain3 = new StatelessFilterChain with AllowAllAuthentication {
+      override def filters = {
+        insertBefore(exceptionTranslationFilter, new X509AuthenticationFilter, super.filters)
+      }
+    }
+
+    assert(chain3.getFilters.get(2).isInstanceOf[X509AuthenticationFilter])
   }
 
 }

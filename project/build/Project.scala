@@ -15,7 +15,7 @@ class MyProject(info: ProjectInfo) extends DefaultWebProject(info) with ScctProj
     val secopenid  = "org.springframework.security" % "spring-security-openid" % secVersion % "compile->default" withSources()
     val seccfg     = "org.springframework.security" % "spring-security-config" % secVersion % "compile->default" withSources()
     val servletapi = "javax.servlet" % "servlet-api" % "2.5" % "compile->default" withSources()
-    val scalatest  = "org.scalatest" % "scalatest_2.9.0" % "1.6.1" % "test->default"
+    val scalatest  = "org.scalatest" % "scalatest_2.9.0" % "1.6.1" % "test->default" withSources()
     val specs2     = "org.specs2" %% "specs2" % "1.4" % "test"
     val scalaz     = "org.specs2" %% "specs2-scalaz-core" % "6.0.RC2" % "test"
 

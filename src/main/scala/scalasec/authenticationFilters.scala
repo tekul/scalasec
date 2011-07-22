@@ -1,46 +1,64 @@
 package scalasec
 
+import org.springframework.security.authentication._
 import org.springframework.security.web.authentication.logout._
 import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter
 import org.springframework.security.openid.{OpenIDAuthenticationProvider, OpenID4JavaConsumer, OpenIDAuthenticationFilter}
 import org.springframework.security.web.authentication.www.{BasicAuthenticationFilter, BasicAuthenticationEntryPoint}
 import org.springframework.security.web.authentication._
-import org.springframework.security.authentication._
 import java.util.Arrays
 import rememberme._
 
 import FilterPositions._
 
 /**
- * Encapsulates the internal ProviderManager and AuthenticationProviders user by the
+ * Encapsulates the internal `ProviderManager` and `AuthenticationProvider`s user by the
  * filter authentication mechanisms, as well as the reference to the parent
- * AuthenticationManager which the user must define.
+ * `AuthenticationManager` which the user must inject into their configuration.
  */
 private[scalasec] trait FilterChainAuthenticationManager {
-  private[scalasec] def authenticationProviders : List[AuthenticationProvider] = Nil
+  /**
+   * The reference which must be set to the `AuthenticationManager` which will be used to authenticate users.
+   */
+  val authenticationManager : AuthenticationManager
+
+  protected[scalasec] def authenticationProviders : List[AuthenticationProvider] = Nil
 
   private[scalasec] lazy val internalAuthenticationManager : ProviderManager =
     new ProviderManager(Arrays.asList(authenticationProviders:_*), authenticationManager)
-
-  val authenticationManager : AuthenticationManager
 }
 
 /**
- * @author Luke Taylor
+ * Provides support for Spring Security's
+ * [[http://static.springsource.org/spring-security/site/docs/3.1.x/reference/springsecurity-single.html#anonymous Anonymous Authentication]].
+ *
+ * This trait is already added to [[scalasec.FilterChain]] class, so you don't need to add it explicitly
+ * if you are using this class.
  */
 trait AnonymousAuthentication extends StatelessFilterChain with FilterChainAuthenticationManager {
   val anonymousKey = "replaceMeWithAProperKey"
   val anonymousProvider = new AnonymousAuthenticationProvider(anonymousKey)
 
-  override def authenticationProviders = anonymousProvider :: super.authenticationProviders
-
   lazy val anonymousFilter = new AnonymousAuthenticationFilter(anonymousKey)
 
-  override def filtersInternal = (ANONYMOUS_FILTER, anonymousFilter) :: super.filtersInternal
+  protected[scalasec] override def authenticationProviders = anonymousProvider :: super.authenticationProviders
+  protected[scalasec] override def filtersInternal = (ANONYMOUS_FILTER, anonymousFilter) :: super.filtersInternal
 }
 
+/**
+ * Adds a `LogoutFilter` to the filter stack.
+ *
+ * The filter responds to the URL ''//j_spring_security_logout'' by default, but this can easily be modified:
+ *
+ * {{{
+ *   logoutFilter.setFilterProcessesUrl("/my_custom_logout_url")
+ * }}}
+ */
 trait Logout extends StatelessFilterChain with RememberMeServicesAware {
+  /**
+   * Default `LogoutHandler`s used to configure the logout filter.
+   */
   lazy val logoutHandlers: List[LogoutHandler] = {
     val sclh = new SecurityContextLogoutHandler()
     rememberMeServices match {
@@ -48,16 +66,35 @@ trait Logout extends StatelessFilterChain with RememberMeServicesAware {
       case _ => sclh :: Nil
     }
   }
+
+  /**
+   * `LogoutSuccessHandler` which is injected into the logout filter. Override to customize the logout
+   * destination.
+   */
   val logoutSuccessHandler : LogoutSuccessHandler = new SimpleUrlLogoutSuccessHandler()
+
+  /**
+   * The `LogoutFilter` instance.
+   */
   lazy val logoutFilter = new LogoutFilter(logoutSuccessHandler, logoutHandlers : _*)
 
-  override def filtersInternal = (LOGOUT_FILTER, logoutFilter) :: super.filtersInternal
+  protected[scalasec] override def filtersInternal = (LOGOUT_FILTER, logoutFilter) :: super.filtersInternal
 }
 
-private[scalasec] trait LoginPage extends StatelessFilterChain {
+/**
+ * Provides the `loginPage` URL and overrides the `AuthenticationEntryPoint` to redirect to the page
+ * when a user needs to be authenticated.
+ */
+private[scalasec] sealed trait LoginPage extends StatelessFilterChain {
+  /**
+   * The login page URL.
+   *
+   * When using FormLogin or OpenID, this should be set to the location of the login page. Alternatively,
+   * the `LoginPageGenerator` trait can be mixed in to automatically create a username/password login form.
+   */
   val loginPage: String
 
-  override def entryPoint : AuthenticationEntryPoint = {
+  override lazy val entryPoint : AuthenticationEntryPoint = {
     new LoginUrlAuthenticationEntryPoint(loginPage)
   }
 }
@@ -66,19 +103,29 @@ private[scalasec] trait LoginPage extends StatelessFilterChain {
  * Automatically generates a login page for form-login.
  */
 trait LoginPageGenerator extends StatelessFilterChain with FormLogin {
-  override val loginPage = "/spring_security_login"
+  final override lazy val loginPage = "/spring_security_login"
 
-  lazy val loginPageFilter = new DefaultLoginPageGeneratingFilter(formLoginFilter.asInstanceOf[UsernamePasswordAuthenticationFilter])
+  private lazy val loginPageFilter = new DefaultLoginPageGeneratingFilter(formLoginFilter.asInstanceOf[UsernamePasswordAuthenticationFilter])
 
-  override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
+  protected[scalasec] override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
 }
 
+/**
+ * Supports username/password authentication using a form (login page).
+ *
+ * Adds a `UsernamePasswordAuthenticationFilter`.
+ *
+ */
 trait FormLogin extends StatelessFilterChain with EventPublisher
     with LoginPage
     with RememberMeServicesAware
     with SessionAuthentication
     with FilterChainAuthenticationManager {
 
+  /**
+   * The filter instance. Use this to customize the filter behaviour (for example using a custom
+   * `AuthenticationSuccessHandler` or `AuthenticationFailureHandler`).
+   */
   lazy val formLoginFilter = {
     val filter = new UsernamePasswordAuthenticationFilter
     filter.setAuthenticationManager(authenticationManager)
@@ -88,9 +135,13 @@ trait FormLogin extends StatelessFilterChain with EventPublisher
     filter
   }
 
-  override def filtersInternal = (FORM_LOGIN_FILTER, formLoginFilter) :: super.filtersInternal
+  protected[scalasec] override def filtersInternal = (FORM_LOGIN_FILTER, formLoginFilter) :: super.filtersInternal
 }
 
+/**
+ * Support for OpenID authentication.
+ * Requires that you set the `loginPage` and `userDetailsService` values.
+ */
 trait OpenID extends StatelessFilterChain with EventPublisher
     with LoginPage
     with SessionAuthentication
@@ -113,26 +164,31 @@ trait OpenID extends StatelessFilterChain with EventPublisher
     provider
   }
 
-  override def authenticationProviders = openIDProvider :: super.authenticationProviders
-
-  override def filtersInternal = (OPENID_FILTER, openIDFilter) :: super.filtersInternal
+  protected[scalasec] override def authenticationProviders = openIDProvider :: super.authenticationProviders
+  protected[scalasec] override def filtersInternal = (OPENID_FILTER, openIDFilter) :: super.filtersInternal
 }
 
+/**
+ * Support for Basic authentication. Adds a `BasicAuthenticationFilter`
+ */
 trait BasicAuthentication extends StatelessFilterChain with FilterChainAuthenticationManager {
   val basicAuthenticationEntryPoint = new BasicAuthenticationEntryPoint()
 
   lazy val basicAuthenticationFilter =
     new BasicAuthenticationFilter(authenticationManager, basicAuthenticationEntryPoint)
 
-  override def entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
+  override lazy val entryPoint : AuthenticationEntryPoint = basicAuthenticationEntryPoint
 
-  override def filtersInternal = (BASIC_AUTH_FILTER, basicAuthenticationFilter) :: super.filtersInternal
+  protected[scalasec] override def filtersInternal = (BASIC_AUTH_FILTER, basicAuthenticationFilter) :: super.filtersInternal
 }
 
 private[scalasec] sealed trait RememberMeServicesAware {
   lazy val rememberMeServices: RememberMeServices = new NullRememberMeServices
 }
 
+/**
+ * Adds remember-me support using a `TokenBasedRememberMeServices`
+ */
 trait RememberMe extends StatelessFilterChain
     with RememberMeServicesAware
     with EventPublisher
@@ -151,12 +207,19 @@ trait RememberMe extends StatelessFilterChain
 
   override lazy val rememberMeServices: RememberMeServices = new TokenBasedRememberMeServices(rememberMeKey, userDetailsService)
 
-  override def authenticationProviders = rememberMeProvider :: super.authenticationProviders
-
-  override def filtersInternal = (REMEMBER_ME_FILTER, rememberMeFilter) :: super.filtersInternal
+  protected[scalasec] override def authenticationProviders = rememberMeProvider :: super.authenticationProviders
+  protected[scalasec] override def filtersInternal = (REMEMBER_ME_FILTER, rememberMeFilter) :: super.filtersInternal
 }
 
+/**
+ * Persistent token-based remember-me.
+ */
 trait PersistentRememberMe extends RememberMe {
+  /**
+   * The token repository where the remember-me tokens are stored.
+   *
+   * This would usually be overridden with a JDBC implementation.
+   */
   lazy val tokenRepository : PersistentTokenRepository = new InMemoryTokenRepositoryImpl
 
   override lazy val rememberMeServices =

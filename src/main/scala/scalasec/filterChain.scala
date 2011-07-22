@@ -17,8 +17,9 @@ import org.springframework.security.web.util.RequestMatcher
 import FilterPositions._
 
 /**
- * Extends <code>StatelessFilterChain</code> with the beans and filters which make up the configuration for a
- * stateful application.
+ * This is the class that is most likely to be used as the starting point for a configuration.
+ *
+ * Extends `StatelessFilterChain` with the beans and filters which make up the configuration for a stateful application.
  */
 abstract class FilterChain extends StatelessFilterChain with SessionManagement with AnonymousAuthentication {
   override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
@@ -27,7 +28,7 @@ abstract class FilterChain extends StatelessFilterChain with SessionManagement w
 
   lazy val requestCacheFilter = new RequestCacheAwareFilter(requestCache)
 
-  override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
+  protected[scalasec] override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
 }
 
 /**
@@ -49,12 +50,12 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
 
   lazy val exceptionTranslationFilter = new ExceptionTranslationFilter(entryPoint, requestCache);
 
-  def entryPoint : AuthenticationEntryPoint = new Http403ForbiddenEntryPoint
+  lazy val entryPoint : AuthenticationEntryPoint = new Http403ForbiddenEntryPoint
 
   /**
    * Returns the filters provided by this class along with their index in the filter chain for sorting
    */
-  def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] = List(
+  protected[scalasec] def filtersInternal: List[Tuple2[FilterPositions.Value,Filter]] = List(
       (SECURITY_CONTEXT_FILTER, securityContextPersistenceFilter),
       (SERVLET_API_SUPPORT_FILTER, servletApiFilter),
       (EXCEPTION_TRANSLATION_FILTER, exceptionTranslationFilter),
@@ -66,29 +67,31 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
     } yield pair._2
 
   // Implementation of SecurityFilterChain for direct use as a Spring Security bean
-  private lazy val scFilters = Arrays.asList(filters:_*)
+  override final lazy val getFilters = Arrays.asList(filters:_*)
 
-  lazy val getFilters = scFilters
-
-  final def matches(request: HttpServletRequest) = requestMatcher.matches(request)
+  override final def matches(request: HttpServletRequest) = requestMatcher.matches(request)
 }
 
 /**
- * Trait which assists with inserting custom filters before or after existing filters in the chain.
+ * Trait which assists with inserting custom filters before or after existing filters in the chain (experimental).
  */
 trait InsertionHelper {
-  def insertBefore(position: Class[_], filter: Filter, target: List[Filter]): List[Filter] = insert(position, filter, target, true)
-  def insertAfter(position: Class[_], filter: Filter, target: List[Filter]): List[Filter] = insert(position, filter, target, false)
+  def insertBefore(position: Filter, filter: Filter, target: List[Filter]): List[Filter] = insert(position == _, filter, target, true)
+  def insertAfter(position: Filter, filter: Filter, target: List[Filter]): List[Filter] = insert(position == _, filter, target, false)
 
-  private def insert(position: Class[_], filter: Filter, target: List[Filter], before: Boolean): List[Filter] =
+  def insertBefore(position: Class[_], filter: Filter, target: List[Filter]): List[Filter] = insert(position == _.getClass, filter, target, true)
+  def insertAfter(position: Class[_], filter: Filter, target: List[Filter]): List[Filter] = insert(position == _.getClass, filter, target, false)
+
+  private def insert(testPosition: Filter => Boolean, filter: Filter, target: List[Filter], before: Boolean): List[Filter] =
     target match {
       case f :: rest =>
-        if (f.getClass == position) {
+        if (testPosition(f)) {
           if (before) {filter :: f :: rest} else {f :: filter :: rest}
         } else {
-          f :: insert(position, filter, rest, before)
+          f :: insert(testPosition, filter, rest, before)
         }
-      case _ => throw new AssertionError("Failed to find filter of type " + position + " in list")
+      case _ => throw new AssertionError("Failed to find filter satisfying required condition: " + testPosition)
     }
 }
 
+object InsertionHelper extends InsertionHelper

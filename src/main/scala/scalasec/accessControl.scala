@@ -13,9 +13,7 @@ import ju.Arrays
 import Conversions._
 
 /**
- * Trait which contains the FilterSecurityInterceptor, AccessDecisionManager and related beans.
- *
- * @author Luke Taylor
+ * Trait which contains the `FilterSecurityInterceptor`, `AccessDecisionManager` and related beans.
  */
 trait WebAccessControl extends EventPublisher {
   lazy val filterSecurityInterceptor = {
@@ -36,8 +34,8 @@ trait WebAccessControl extends EventPublisher {
   }
 
   private[scalasec] def addInterceptUrl(matcher: RequestMatcher, attributes: ju.List[ConfigAttribute], channel: RequiredChannel.Value) {
-    assert(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
-    assert(!accessUrls.exists(_._1.isInstanceOf[AnyRequestMatcher]), "A universal match has already been included in the " +
+    require(!accessUrls.contains(matcher), "An identical RequestMatcher already exists: " + matcher)
+    require(!accessUrls.exists(_._1.isInstanceOf[AnyRequestMatcher]), "A universal match has already been included in the " +
       "list, so any further interceptUrls will have no effect")
     accessUrls = accessUrls + (matcher -> attributes)
   }

@@ -35,7 +35,7 @@ class FormLoginSpec extends FlatSpec with ShouldMatchers with TestConversions wi
     assert(filterChainWithForm.formLoginFilter.getRememberMeServices.isInstanceOf[NullRememberMeServices])
   }
   it should "allow setting a custom loginPage" in {
-    val chain = new FilterChain with LoginPageGenerator with AllowAllAuthentication with FormLogin {
+    val chain = new FilterChain with AllowAllAuthentication with FormLogin {
       override val loginPage = "/customLogin"
     }
     chain.entryPoint.asInstanceOf[LoginUrlAuthenticationEntryPoint].getLoginFormUrl should be ("/customLogin")
