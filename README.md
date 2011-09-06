@@ -1,7 +1,7 @@
 Running the Sample app
 ======================
 
-1. Install the [Simple Build Tool](http://code.google.com/p/simple-build-tool/wiki/Setup)
+1. Install the [Simple Build Tool](https://github.com/harrah/xsbt/wiki/Setup)
 2. `cd scalasec`
 3. `sbt`
 
