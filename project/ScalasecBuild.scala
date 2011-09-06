@@ -8,7 +8,10 @@ object BuildSettings {
   val buildVersion      = "0.1-SNAPSHOT"
   val buildScalaVersion = "2.9.1"
 
-  val buildSettings = Defaults.defaultSettings ++ webSettings ++ Seq (
+  import Resolvers._
+
+  val buildSettings = Defaults.defaultSettings ++ Seq (
+    resolvers ++= Seq(mavenLocalRepo, springSnapshotRepo),
     organization := buildOrganization,
     version      := buildVersion,
     scalaVersion := buildScalaVersion
@@ -49,8 +52,7 @@ object Dependencies {
   val cglib      = "cglib" % "cglib-nodep" % "2.2.2" % "runtime->default"
 }
 
-object ScalasecBuild extends Build {
-  import Resolvers._
+object ScalaSecBuild extends Build {
   import Dependencies._
   import BuildSettings._
 
@@ -60,9 +62,20 @@ object ScalasecBuild extends Build {
 
   lazy val scalasec = Project("scalasec",
     file("."),
+    settings = buildSettings
+  ) aggregate (core, testapp)
+
+  lazy val core = Project("core",
+    file("core"),
     settings = buildSettings ++ Seq (
-      resolvers ++= Seq(mavenLocalRepo, springSnapshotRepo),
-      libraryDependencies ++= Seq(testDeps, loggingDeps, springSecDeps, Seq(servletapi, jetty7, cglib)).flatten
+      libraryDependencies ++= testDeps ++ loggingDeps ++ springSecDeps ++ Seq(servletapi, cglib)
     )
   )
+
+  lazy val testapp = Project("testapp",
+    file("testapp"),
+    settings = buildSettings ++ webSettings ++ Seq(
+      libraryDependencies ++= testDeps ++ loggingDeps :+ jetty7
+    )
+  ) dependsOn (core)
 }
