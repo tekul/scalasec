@@ -22,15 +22,7 @@ import scalasec.Conversions
  *
  * Extends `StatelessFilterChain` with the beans and filters which make up the configuration for a stateful application.
  */
-abstract class FilterChain extends StatelessFilterChain with SessionManagement with AnonymousAuthentication {
-  override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
-
-  override val requestCache: RequestCache = new HttpSessionRequestCache
-
-  lazy val requestCacheFilter = new RequestCacheAwareFilter(requestCache)
-
-  protected[web] override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: super.filtersInternal
-}
+abstract class FilterChain extends StatelessFilterChain with SessionManagement with AnonymousAuthentication
 
 /**
  * Basic configuration class which provides the core security filters configured to handle stateless requests.
@@ -49,7 +41,7 @@ abstract class StatelessFilterChain extends Conversions with WebAccessControl wi
 
   val servletApiFilter = new SecurityContextHolderAwareRequestFilter()
 
-  lazy val exceptionTranslationFilter = new ExceptionTranslationFilter(entryPoint, requestCache);
+  lazy val exceptionTranslationFilter = new ExceptionTranslationFilter(entryPoint, requestCache)
 
   lazy val entryPoint : AuthenticationEntryPoint = new Http403ForbiddenEntryPoint
 

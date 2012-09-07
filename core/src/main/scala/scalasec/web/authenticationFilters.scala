@@ -106,7 +106,7 @@ private[web] sealed trait LoginPage extends StatelessFilterChain {
 trait LoginPageGenerator extends StatelessFilterChain with FormLogin {
   final override lazy val loginPage = "/spring_security_login"
 
-  private lazy val loginPageFilter = new DefaultLoginPageGeneratingFilter(formLoginFilter.asInstanceOf[UsernamePasswordAuthenticationFilter])
+  private lazy val loginPageFilter = new DefaultLoginPageGeneratingFilter(formLoginFilter)
 
   protected[web] override def filtersInternal = (LOGIN_PAGE_FILTER, loginPageFilter) :: super.filtersInternal
 }

@@ -6,6 +6,8 @@ import org.springframework.security.web.session.{ConcurrentSessionFilter, Sessio
 import org.springframework.security.web.authentication.session.{ConcurrentSessionControlStrategy, SessionFixationProtectionStrategy, NullAuthenticatedSessionStrategy, SessionAuthenticationStrategy}
 import org.springframework.context.ApplicationListener
 import org.springframework.security.core.session.{SessionRegistryImpl, SessionDestroyedEvent, SessionRegistry}
+import org.springframework.security.web.context.{HttpSessionSecurityContextRepository, SecurityContextRepository}
+import org.springframework.security.web.savedrequest.{RequestCacheAwareFilter, HttpSessionRequestCache, RequestCache}
 
 /**
  * Exposes the shared `SessionAuthenticationStrategy` reference.
@@ -19,11 +21,17 @@ private[scalasec] trait SessionAuthentication {
  * the `SessionManagementFilter`
  */
 trait SessionManagement extends StatelessFilterChain with SessionAuthentication {
+  override val securityContextRepository: SecurityContextRepository = new HttpSessionSecurityContextRepository
+
+  override val requestCache: RequestCache = new HttpSessionRequestCache
+
+  lazy val requestCacheFilter = new RequestCacheAwareFilter(requestCache)
+
   override val sessionAuthenticationStrategy: SessionAuthenticationStrategy = new SessionFixationProtectionStrategy
 
   lazy val sessionManagementFilter: Filter = new SessionManagementFilter(securityContextRepository, sessionAuthenticationStrategy)
 
-  protected[web] override def filtersInternal = (SESSION_MANAGEMENT_FILTER, sessionManagementFilter) :: super.filtersInternal
+  protected[web] override def filtersInternal = (REQUEST_CACHE_FILTER, requestCacheFilter) :: (SESSION_MANAGEMENT_FILTER, sessionManagementFilter) :: super.filtersInternal
 }
 
 /**
