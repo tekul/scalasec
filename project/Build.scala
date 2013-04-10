@@ -5,28 +5,20 @@ import com.github.siasia.WebPlugin._
 
 object BuildSettings {
   val buildVersion      = "0.1-SNAPSHOT"
-  val buildScalaVersion = "2.9.2"
-
-  import Resolvers._
+  val buildScalaVersion = "2.9.3"
 
   val buildSettings = Defaults.defaultSettings ++ Seq (
-    resolvers ++= Seq(mavenLocalRepo),
     organization := "eu.tekul",
     version      := buildVersion,
     scalaVersion := buildScalaVersion
   )
 }
 
-object Resolvers {
-  val mavenLocalRepo = "Local Maven Repository" at "file://"+Path.userHome+"/.m2/repository"
-  val springSnapshotRepo = "Spring Snapshot Repo" at "http://maven.springframework.org/snapshot"
-}
-
 object Dependencies {
-  val springSecurityVersion = "3.1.2.RELEASE"
-  val springVersion  = "3.1.2.RELEASE"
-  val logbackVersion = "0.9.28"
-  val slf4jVersion   = "1.6.1"
+  val springSecurityVersion = "3.1.3.RELEASE"
+  val springVersion  = "3.2.2.RELEASE"
+  val logbackVersion = "1.0.11"
+  val slf4jVersion   = "1.7.5"
 
   def springSecurity(name: String) = "org.springframework.security" % "spring-security-%s".format(name) % springSecurityVersion
   def spring(name: String)         = "org.springframework" % "spring-%s".format(name) % springVersion
@@ -41,18 +33,18 @@ object Dependencies {
   val servletapi = "javax.servlet" % "servlet-api" % "2.5"
 
   val scalaTest = Seq(
-    "org.scalatest" %% "scalatest" % "1.8" % "test",
-    "org.scalacheck" %% "scalacheck" % "1.9" % "test"
+    "org.scalatest" %% "scalatest" % "1.9.1" % "test"
+//  , "org.scalacheck" %% "scalacheck" % "1.10.1" % "test"
   )
 
-  val mockito    = "org.mockito" % "mockito-all" % "1.8.5" % "test->default"
+  val mockito    = "org.mockito" % "mockito-all" % "1.9.5" % "test"
 
   val jetty6     = "org.mortbay.jetty" % "jetty" % "6.1.26" % "container"
-  val jetty7     = "org.eclipse.jetty" % "jetty-webapp" % "7.5.0.v20110901" % "container"
+  val jetty7     = "org.eclipse.jetty" % "jetty-webapp" % "7.6.9.v20130131" % "container"
 
   val slf4j      = "org.slf4j" % "slf4j-api" % slf4jVersion
-  val logback    = "ch.qos.logback" % "logback-classic" % logbackVersion % "runtime->default"
-  val jcl        = "org.slf4j" %  "jcl-over-slf4j" % slf4jVersion % "runtime->default"
+  val logback    = "ch.qos.logback" % "logback-classic" % logbackVersion % "runtime"
+  val jcl        = "org.slf4j" %  "jcl-over-slf4j" % slf4jVersion % "runtime"
 
   val cglib      = "cglib" % "cglib-nodep" % "2.2.2" % "runtime"
 }
