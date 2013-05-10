@@ -3,7 +3,7 @@ Spring Security Configuration with Scala
 
 Code to accompany [this blog article](http://blog.springsource.org/2011/08/01/spring-security-configuration-with-scala/).
 
-Provides a scala-based alternative to the usual Spring Security namespace with similar syntax, but which is compatible with Spring's `@Configuration` features. It is no more complicated than namespace syntax, but is more powerful and intuitive as it directly exposes the actual classes which are usually hidden. By using higher-order functions, it makes it easy to plug in new behaviour for features such as access-control (`interceptUrl`), which can e directly implemented as Scala functions.
+Provides a scala-based alternative to the usual Spring Security namespace with similar syntax, but which is compatible with Spring's `@Configuration` features. It is no more complicated than namespace syntax, but is more powerful and intuitive as it directly exposes the actual classes which are usually hidden. By using higher-order functions, it makes it easy to plug in new behaviour for features such as access-control (`interceptUrl`), which can be implemented as Scala functions.
 
 
 Building
